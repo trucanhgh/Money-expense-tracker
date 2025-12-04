@@ -1,0 +1,230 @@
+package com.codewithfk.expensetracker.android.feature.goal
+
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.codewithfk.expensetracker.android.R
+import com.codewithfk.expensetracker.android.data.model.GoalEntity
+import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.utils.Utils
+import kotlinx.coroutines.launch
+import java.util.Calendar
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoalDetailContent(
+    name: String,
+    goal: GoalEntity?,
+    getContributionsForGoal: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
+    onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit
+) {
+    // contributions flow collected inside content per requirement
+    val contributionsFlow = getContributionsForGoal(name, null)
+    val contributions by contributionsFlow.collectAsState(initial = emptyList())
+
+    // total contributed to this goal (consider Income positive, Expense negative)
+    val total = contributions.fold(0.0) { acc, e -> if (e.type == "Income") acc + e.amount else acc + (-e.amount) }
+
+    val scope = rememberCoroutineScope()
+
+    // Dialog state for adding contribution
+    val showDialog = remember { mutableStateOf(false) }
+    val dialogType = remember { mutableStateOf("Expense") } // "Income" or "Expense"
+    val amountInput = remember { mutableStateOf("") }
+    val dateMillis = remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val datePickerVisible = remember { mutableStateOf(false) }
+
+    Scaffold(topBar = {}) { padding ->
+        Surface(modifier = Modifier.padding(padding)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.size(12.dp))
+
+                // Goal card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2F8))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            // remove "Chủ quỹ" label per requirement
+                            ExpenseTextView(text = goal?.name ?: "", style = MaterialTheme.typography.titleLarge)
+                            Spacer(modifier = Modifier.size(8.dp))
+
+                            val contributedText = Utils.formatCurrency(total)
+                            val targetText = Utils.formatCurrency(goal?.targetAmount ?: 0.0)
+
+                            ExpenseTextView(text = "$contributedText / $targetText")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.size(16.dp))
+
+                // Buttons: Add Income, Add Outcome
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = {
+                        dialogType.value = "Income"
+                        amountInput.value = ""
+                        dateMillis.longValue = System.currentTimeMillis()
+                        showDialog.value = true
+                    }, modifier = Modifier.weight(1f)) {
+                        ExpenseTextView(text = "Thêm thu nhập")
+                    }
+
+                    Button(onClick = {
+                        dialogType.value = "Expense"
+                        amountInput.value = ""
+                        dateMillis.longValue = System.currentTimeMillis()
+                        showDialog.value = true
+                    }, modifier = Modifier.weight(1f)) {
+                        ExpenseTextView(text = "Thêm chi tiêu")
+                    }
+                }
+
+                Spacer(modifier = Modifier.size(16.dp))
+
+                // List of contributions
+                ExpenseTextView(text = "Giao dịch")
+                Spacer(modifier = Modifier.size(8.dp))
+
+                if (contributions.isEmpty()) {
+                    ExpenseTextView(text = "Không có giao dịch")
+                } else {
+                    contributions.forEach { e ->
+                        Row(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            ExpenseTextView(text = e.title)
+                            val amountDisplay = if (e.type == "Income") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
+                            ExpenseTextView(text = amountDisplay)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Contribution input dialog
+    if (showDialog.value) {
+        AlertDialog(onDismissRequest = { showDialog.value = false }, confirmButton = {
+            TextButton(onClick = {
+                // normalize thousand separators and commas
+                val cleaned = amountInput.value.replace(Regex("[\\.,\\s]"), "")
+                val amt = cleaned.toDoubleOrNull() ?: 0.0
+                val dateStr = Utils.formatDateToHumanReadableForm(dateMillis.longValue)
+                // insert via callback
+                onInsertContribution(name, amt, dateStr, dialogType.value)
+                showDialog.value = false
+            }) { ExpenseTextView(text = "Lưu") }
+        }, dismissButton = {
+            TextButton(onClick = { showDialog.value = false }) { ExpenseTextView(text = "Hủy") }
+        }, text = {
+            Column {
+                ExpenseTextView(text = if (dialogType.value == "Income") "Thêm thu nhập" else "Thêm chi tiêu")
+                Spacer(modifier = Modifier.size(8.dp))
+                OutlinedTextField(value = amountInput.value, onValueChange = { v ->
+                    // allow digits and dots and commas
+                    amountInput.value = v.filter { it.isDigit() || it == '.' || it == ',' }
+                }, placeholder = { ExpenseTextView(text = "Số tiền (VND)") })
+                Spacer(modifier = Modifier.size(8.dp))
+                OutlinedTextField(value = Utils.formatDateToHumanReadableForm(dateMillis.longValue), onValueChange = {}, modifier = Modifier.clickable { datePickerVisible.value = true }, readOnly = true, placeholder = { ExpenseTextView(text = "Chọn ngày") })
+
+                if (datePickerVisible.value) {
+                    val pickerState = rememberDatePickerState()
+                    DatePickerDialog(onDismissRequest = { datePickerVisible.value = false }, confirmButton = {
+                        TextButton(onClick = {
+                            val selected = pickerState.selectedDateMillis ?: System.currentTimeMillis()
+                            dateMillis.longValue = selected
+                            datePickerVisible.value = false
+                        }) { ExpenseTextView(text = "Xác nhận") }
+                    }, dismissButton = {
+                        TextButton(onClick = { datePickerVisible.value = false }) { ExpenseTextView(text = "Hủy") }
+                    }) {
+                        DatePicker(state = pickerState)
+                    }
+                }
+            }
+        })
+    }
+}
+
+@Composable
+fun GoalDetailScreen(
+    navController: NavController,
+    encodedName: String?,
+    viewModel: GoalViewModel = hiltViewModel()
+) {
+    val name = encodedName?.let { Uri.decode(it) }?.trim() ?: ""
+    val contributionsFlowProvider: (String, String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>> = { n, m -> viewModel.getContributionsForGoal(n, m) }
+    val goals by viewModel.goals.collectAsState(initial = emptyList())
+    val goal = goals.find { it.name.equals(name, ignoreCase = true) }
+
+    GoalDetailContent(
+        name = name,
+        goal = goal,
+        getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
+        onInsertContribution = { goalName, amt, dateStr, type -> viewModel.insertContribution(goalName, amt, dateStr, type) }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewGoalDetailContent() {
+    val sampleContributions = listOf(
+        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 1, title = "Đóng góp 1", amount = 200000.0, date = "01/12/2025", type = "Income"),
+        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Rút tiền", amount = 50000.0, date = "02/12/2025", type = "Expense")
+    )
+    val sampleGoal = GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0)
+    GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }
+}
