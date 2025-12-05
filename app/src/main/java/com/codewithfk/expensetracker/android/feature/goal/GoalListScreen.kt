@@ -114,7 +114,7 @@ fun GoalListContent(
                                     // Top-right: overflow menu ("...")
                                     var menuExpanded by remember { mutableStateOf(false) }
                                     IconButton(onClick = { menuExpanded = true }) {
-                                        Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
+                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = Color.Black)
                                     }
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                         DropdownMenuItem(text = { Text("Đổi tên") }, onClick = {

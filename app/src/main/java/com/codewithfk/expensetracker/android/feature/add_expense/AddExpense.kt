@@ -307,11 +307,13 @@ fun DataForm(
         Button(
             onClick = {
                 val trimmedName = name.value.trim()
+                // If user never picked a date (date.longValue == 0L), record current time as the date.
+                val effectiveDateMillis = if (date.longValue == 0L) System.currentTimeMillis() else date.longValue
                 val model = ExpenseEntity(
                     null,
                     trimmedName,
                     amount.value.toDoubleOrNull() ?: 0.0,
-                    Utils.formatDateToHumanReadableForm(date.longValue),
+                    Utils.formatDateToHumanReadableForm(effectiveDateMillis),
                     type.value
                 )
                 onAddExpenseClick(model)
@@ -326,9 +328,11 @@ fun DataForm(
     }
     if (dateDialogVisibility.value) {
         ExpenseDatePickerDialog(onDateSelected = {
+            // The dialog will provide a valid millis; set it and close the picker
             date.longValue = it
             dateDialogVisibility.value = false
         }, onDismiss = {
+            // User canceled; just close the picker without changing date
             dateDialogVisibility.value = false
         })
     }
@@ -445,13 +449,16 @@ fun ExpenseDatePickerDialog(
     onDateSelected: (date: Long) -> Unit, onDismiss: () -> Unit
 ) {
     val datePickerState = rememberDatePickerState()
-    val selectedDate = datePickerState.selectedDateMillis ?: 0L
+    // If user doesn't pick a date, selectedDateMillis will be null; use current time as fallback
     DatePickerDialog(onDismissRequest = { onDismiss() }, confirmButton = {
-        TextButton(onClick = { onDateSelected(selectedDate) }) {
+        TextButton(onClick = {
+            val selected = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+            onDateSelected(selected)
+        }) {
             ExpenseTextView(text = "Xác nhận")
         }
     }, dismissButton = {
-        TextButton(onClick = { onDateSelected(selectedDate) }) {
+        TextButton(onClick = { onDismiss() }) {
             ExpenseTextView(text = "Hủy")
         }
     }) {

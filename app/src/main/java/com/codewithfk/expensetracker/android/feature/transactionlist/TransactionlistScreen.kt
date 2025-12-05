@@ -64,6 +64,9 @@ fun TransactionListContent(
         true
     }
 
+    // Sort by date descending (newest first). Dates are stored as String dd/MM/yyyy; convert to millis for sorting.
+    val sortedTransactions = filteredByDateRange.sortedByDescending { Utils.getMillisFromDate(it.date) }
+
     Scaffold(
         topBar = {
             Box(
@@ -142,7 +145,7 @@ fun TransactionListContent(
                         }
                     }
                 }
-                items(filteredByDateRange) { item ->
+                items(sortedTransactions) { item ->
                     val icon = Utils.getItemIcon(item)
                     val amount = if (item.type == "Income") item.amount else -item.amount
                     TransactionItem(

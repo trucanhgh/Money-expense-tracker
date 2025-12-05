@@ -2,6 +2,7 @@ package com.codewithfk.expensetracker.android
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBarItem
@@ -15,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,7 +47,8 @@ fun NavHostScreen() {
                 navController = navController,
                 items = listOf(
                     NavItem(route = "/home", icon = R.drawable.ic_home),
-                    NavItem(route = "/categories", icon = R.drawable.ic_expense),
+                    // Use a proper vector drawable for the categories icon to avoid painterResource crashes
+                    NavItem(route = "/categories", icon = R.drawable.ic_dashboard),
                     NavItem(route = "/goals", icon = R.drawable.ic_goal),
                     NavItem(route = "/stats", icon = R.drawable.ic_stats)
                 )
@@ -157,7 +160,8 @@ fun NavigationBottomBar(
                     }
                 },
                 icon = {
-                    Icon(painter = painterResource(id = item.icon), contentDescription = null)
+                    // Force icon size to 36.dp to match `ic_home` vector dimensions so all nav icons appear uniform
+                    Icon(painter = painterResource(id = item.icon), contentDescription = null, modifier = Modifier.size(36.dp))
                 },
                 alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(

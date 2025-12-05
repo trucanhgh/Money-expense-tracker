@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -30,11 +31,24 @@ fun CategoryDetailContent(
     name: String,
     getExpensesForCategory: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>
 ) {
-    // Mặc định hiển thị tất cả giao dịch (không chỉ trong tháng này)
-    val monthFilter = remember { mutableStateOf(false) }
-    val month = remember { getCurrentMonthString() }
-    val expensesFlow = getExpensesForCategory(name, if (monthFilter.value) month else null)
+    // Filter by month: selectedMonth == null => show all; otherwise format MM/YYYY
+    val selectedMonth = remember { mutableStateOf<String?>(null) }
+    val currentMonth = remember { getCurrentMonthString() }
+    val expensesFlow = getExpensesForCategory(name, selectedMonth.value)
     val expenses by expensesFlow.collectAsState(initial = emptyList())
+    val showFilterDialog = remember { mutableStateOf(false) }
+    // prepare last 12 months list for selection
+    fun last12Months(): List<String> {
+        val months = mutableListOf<String>()
+        val cal = java.util.Calendar.getInstance()
+        for (i in 0..11) {
+            val m = cal.get(java.util.Calendar.MONTH) + 1
+            val y = cal.get(java.util.Calendar.YEAR)
+            months.add(String.format(java.util.Locale.getDefault(), "%02d/%d", m, y))
+            cal.add(java.util.Calendar.MONTH, -1)
+        }
+        return months
+    }
 
     // If name is blank show a friendly message
     if (name.isBlank()) {
@@ -54,9 +68,9 @@ fun CategoryDetailContent(
                 ExpenseTextView(text = name)
                 Spacer(modifier = Modifier.size(8.dp))
 
-                // Chuyển đổi bộ lọc: Tất cả thời gian so với Tháng này
-                Button(onClick = { monthFilter.value = !monthFilter.value }) {
-                    ExpenseTextView(text = if (monthFilter.value) "Tháng này" else "Tất cả")
+                // Filter button opens dialog to choose month or show all
+                Button(onClick = { showFilterDialog.value = true }) {
+                    ExpenseTextView(text = "Lọc")
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -68,6 +82,36 @@ fun CategoryDetailContent(
                 }
             }
         }
+    }
+
+    if (showFilterDialog.value) {
+        val months = last12Months()
+        AlertDialog(onDismissRequest = { showFilterDialog.value = false }, confirmButton = {
+            Button(onClick = { showFilterDialog.value = false }) { ExpenseTextView(text = "Đóng") }
+        }, text = {
+            Column {
+                ExpenseTextView(text = "Lọc giao dịch", fontWeight = androidx.compose.material3.MaterialTheme.typography.titleLarge.fontWeight)
+                Spacer(modifier = Modifier.size(8.dp))
+                Button(onClick = {
+                    selectedMonth.value = null
+                    showFilterDialog.value = false
+                }) { ExpenseTextView(text = "Hiển thị tất cả") }
+                Spacer(modifier = Modifier.size(8.dp))
+                Button(onClick = {
+                    selectedMonth.value = currentMonth
+                    showFilterDialog.value = false
+                }) { ExpenseTextView(text = "Tháng này") }
+                Spacer(modifier = Modifier.size(8.dp))
+                // Quick pick recent months
+                months.forEach { m ->
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Button(onClick = {
+                        selectedMonth.value = m
+                        showFilterDialog.value = false
+                    }) { ExpenseTextView(text = m) }
+                }
+            }
+        })
     }
 }
 

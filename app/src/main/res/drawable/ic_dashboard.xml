@@ -5,8 +5,8 @@
     android:viewportWidth="36"
     android:viewportHeight="36">
 
-    <!-- Flag icon normalized to 36x36 viewport -->
+    <!-- Four-square dashboard icon normalized to 36x36 viewport -->
     <path
         android:fillColor="#FF000000"
-        android:pathData="M8,4h2v28h-2zM10,6 L28,10 L10,16 z" />
+        android:pathData="M4,4h12v12H4zM20,4h12v12H20zM4,20h12v12H4zM20,20h12v12H20z" />
 </vector>

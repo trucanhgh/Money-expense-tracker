@@ -55,6 +55,8 @@ fun CategoryListContent(
 
     val showAddDialog = remember { mutableStateOf(false) }
     val newCategoryName = remember { mutableStateOf("") }
+    val showFilterDialog = remember { mutableStateOf(false) }
+
     // edit dialog state
     val showEditDialog = remember { mutableStateOf(false) }
     val editCategoryName = remember { mutableStateOf("") }
@@ -70,9 +72,6 @@ fun CategoryListContent(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Button(onClick = { filterByMonth.value = !filterByMonth.value }) {
-                            ExpenseTextView(text = if (filterByMonth.value) "Tháng này" else "Tất cả")
-                        }
                         Spacer(modifier = Modifier.size(8.dp))
                         // explicit + button for adding category
                         Button(onClick = { showAddDialog.value = true }) {
@@ -193,6 +192,27 @@ fun CategoryListContent(
                 }
             }
         )
+    }
+
+    // Filter dialog: choose between showing all or this month
+    if (showFilterDialog.value) {
+        AlertDialog(onDismissRequest = { showFilterDialog.value = false }, confirmButton = {
+            Button(onClick = { showFilterDialog.value = false }) { ExpenseTextView(text = "Đóng") }
+        }, text = {
+            Column {
+                ExpenseTextView(text = "Lọc giao dịch", fontWeight = MaterialTheme.typography.titleLarge.fontWeight)
+                Spacer(modifier = Modifier.size(8.dp))
+                Button(onClick = {
+                    filterByMonth.value = false
+                    showFilterDialog.value = false
+                }) { ExpenseTextView(text = "Hiển thị tất cả") }
+                Spacer(modifier = Modifier.size(8.dp))
+                Button(onClick = {
+                    filterByMonth.value = true
+                    showFilterDialog.value = false
+                }) { ExpenseTextView(text = "Tháng này") }
+            }
+        })
     }
 }
 

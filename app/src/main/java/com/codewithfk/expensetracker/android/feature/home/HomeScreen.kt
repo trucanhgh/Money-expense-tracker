@@ -84,12 +84,7 @@ fun HomeContent(
                 }) {
                 Column(modifier = Modifier.align(Alignment.CenterStart)) {
                     ExpenseTextView(
-                        text = "Chào buổi chiều",
-                        style = Typography.bodyMedium,
-                        color = Color.White
-                    )
-                    ExpenseTextView(
-                        text = "CodeWithFK",
+                        text = "Expense Tracker",
                         style = Typography.titleLarge,
                         color = Color.White
                     )
@@ -98,7 +93,7 @@ fun HomeContent(
                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                     var expandedMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null)
+                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = Color.White)
                     }
                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
                         DropdownMenuItem(text = { ExpenseTextView(text = "Cài đặt") }, onClick = {
@@ -219,7 +214,7 @@ fun MultiFloatingActionButton(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_addbutton),
+                    painter = painterResource(R.drawable.ic_add),
                     contentDescription = "nút thêm",
                     modifier = Modifier.size(40.dp)
                 )
@@ -258,11 +253,6 @@ fun CardItem(
                     text = balance, style = Typography.headlineLarge, color = Color.White,
                 )
             }
-            Image(
-                painter = painterResource(id = R.drawable.dots_menu),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
         }
 
         Box(
@@ -297,6 +287,9 @@ fun TransactionList(
     title: String = "Giao dịch gần đây",
     onSeeAllClicked: () -> Unit
 ) {
+    // Always display newest transactions at top. Dates are stored as dd/MM/yyyy strings; convert to millis to sort.
+    val sorted = list.sortedByDescending { Utils.getMillisFromDate(it.date) }
+
     LazyColumn(modifier = modifier.padding(horizontal = 16.dp)) {
         item {
             Column {
@@ -320,7 +313,7 @@ fun TransactionList(
                 Spacer(modifier = Modifier.size(12.dp))
             }
         }
-        items(items = list,
+        items(items = sorted,
             key = { item -> item.id ?: 0 }) { item ->
             val icon = Utils.getItemIcon(item)
             val amount = if (item.type == "Income") item.amount else item.amount * -1
@@ -353,11 +346,6 @@ fun TransactionItem(
             .padding(vertical = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = icon),
-                contentDescription = null,
-                modifier = Modifier.size(51.dp)
-            )
             Spacer(modifier = Modifier.size(8.dp))
             Column {
                 ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium)

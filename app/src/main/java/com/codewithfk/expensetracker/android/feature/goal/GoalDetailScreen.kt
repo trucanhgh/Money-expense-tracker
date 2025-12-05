@@ -1,59 +1,22 @@
 package com.codewithfk.expensetracker.android.feature.goal
 
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
-import kotlinx.coroutines.launch
-import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -73,13 +36,13 @@ fun GoalDetailContent(
     // This way when user contributes to a goal we record an Expense (global balance decreases) but goal total increases.
     val total = contributions.fold(0.0) { acc, e -> if (e.type == "Expense") acc + e.amount else acc - e.amount }
 
-    val scope = rememberCoroutineScope()
-
     // Dialog state for adding contribution
     val showDialog = remember { mutableStateOf(false) }
     val dialogType = remember { mutableStateOf("Expense") } // "Income" or "Expense"
     val amountInput = remember { mutableStateOf("") }
-    val dateMillis = remember { mutableLongStateOf(System.currentTimeMillis()) }
+    // dateMillis == 0L means user hasn't picked a date yet (show empty). If user confirms without selecting,
+    // we'll use current time as fallback (consistent with AddExpense behavior).
+    val dateMillis = remember { mutableLongStateOf(0L) }
     val datePickerVisible = remember { mutableStateOf(false) }
 
     Scaffold(topBar = {}) { padding ->
@@ -117,7 +80,8 @@ fun GoalDetailContent(
                     Button(onClick = {
                         dialogType.value = "Income"
                         amountInput.value = ""
-                        dateMillis.longValue = System.currentTimeMillis()
+                        // don't prefill date; keep 0L so field stays empty unless user picks a date
+                        dateMillis.longValue = 0L
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Rút khỏi quỹ")
@@ -126,7 +90,8 @@ fun GoalDetailContent(
                     Button(onClick = {
                         dialogType.value = "Expense"
                         amountInput.value = ""
-                        dateMillis.longValue = System.currentTimeMillis()
+                        // keep date unset until user selects
+                        dateMillis.longValue = 0L
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Nạp vào quỹ")
@@ -142,7 +107,9 @@ fun GoalDetailContent(
                 if (contributions.isEmpty()) {
                     ExpenseTextView(text = "Không có giao dịch")
                 } else {
-                    contributions.forEach { e ->
+                    // show newest transactions first
+                    val sortedContributions = contributions.sortedByDescending { Utils.getMillisFromDate(it.date) }
+                    sortedContributions.forEach { e ->
                         Row(modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -162,7 +129,7 @@ fun GoalDetailContent(
         AlertDialog(onDismissRequest = { showDialog.value = false }, confirmButton = {
             TextButton(onClick = {
                 // normalize thousand separators and commas
-                val cleaned = amountInput.value.replace(Regex("[\\.,\\s]"), "")
+                val cleaned = amountInput.value.replace(Regex("[.,\\s]"), "")
                 val amt = cleaned.toDoubleOrNull() ?: 0.0
                 val dateStr = Utils.formatDateToHumanReadableForm(dateMillis.longValue)
                 // insert via callback
