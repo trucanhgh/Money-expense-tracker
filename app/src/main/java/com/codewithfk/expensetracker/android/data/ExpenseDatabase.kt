@@ -16,7 +16,7 @@ import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Singleton
 
-@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class], version = 5, exportSchema = false)
+@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class], version = 6, exportSchema = false)
 @Singleton
 abstract class ExpenseDatabase : RoomDatabase() {
 
@@ -39,11 +39,24 @@ abstract class ExpenseDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_5_6)
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
+    }
+}
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add ownerId column to expense_table
+        db.execSQL("ALTER TABLE expense_table ADD COLUMN ownerId TEXT NOT NULL DEFAULT ''")
+        // Add ownerId column to category_table
+        db.execSQL("ALTER TABLE category_table ADD COLUMN ownerId TEXT NOT NULL DEFAULT ''")
+        // Add ownerId column to goal_table
+        db.execSQL("ALTER TABLE goal_table ADD COLUMN ownerId TEXT NOT NULL DEFAULT ''")
+        // Note: user_table remains as-is (local credentials)
     }
 }
 

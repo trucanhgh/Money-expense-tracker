@@ -11,14 +11,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CategoryDao {
 
-    @Query("SELECT * FROM category_table ORDER BY name")
-    fun getAllCategories(): Flow<List<CategoryEntity>>
+    // Scoped by ownerId
+    @Query("SELECT * FROM category_table WHERE ownerId = :userId ORDER BY name")
+    fun getAllCategories(userId: String): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM category_table WHERE lower(trim(name)) = lower(trim(:name)) LIMIT 1")
-    suspend fun getCategoryByName(name: String): CategoryEntity?
+    @Query("SELECT * FROM category_table WHERE ownerId = :userId AND lower(trim(name)) = lower(trim(:name)) LIMIT 1")
+    suspend fun getCategoryByName(userId: String, name: String): CategoryEntity?
 
-    @Query("SELECT * FROM category_table WHERE id = :id LIMIT 1")
-    suspend fun getCategoryById(id: Int): CategoryEntity?
+    @Query("SELECT * FROM category_table WHERE ownerId = :userId AND id = :id LIMIT 1")
+    suspend fun getCategoryById(userId: String, id: Int): CategoryEntity?
 
     @Insert
     suspend fun insertCategory(categoryEntity: CategoryEntity)

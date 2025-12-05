@@ -11,6 +11,7 @@ import com.codewithfk.expensetracker.android.data.dao.GoalDao
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.GoalEntity
+import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -22,25 +23,28 @@ import javax.inject.Inject
 class AddExpenseViewModel @Inject constructor(
     val dao: ExpenseDao,
     val categoryDao: CategoryDao,
-    goalDao: GoalDao
+    val goalDao: GoalDao,
+    private val currentUserProvider: CurrentUserProvider
 ) : BaseViewModel() {
 
-    val categories: Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
-    val goals: Flow<List<GoalEntity>> = goalDao.getAllGoals()
+    private val userId: String = currentUserProvider.getUserId() ?: ""
+
+    val categories: Flow<List<CategoryEntity>> = categoryDao.getAllCategories(userId)
+    val goals: Flow<List<GoalEntity>> = goalDao.getAllGoals(userId)
 
     suspend fun addExpense(expenseEntity: ExpenseEntity): Boolean {
         return try {
             // Ensure default category exists and assign if title blank
             val defaultName = "Khác"
             val title = if (expenseEntity.title.isBlank()) {
-                val existing = categoryDao.getCategoryByName(defaultName)
+                val existing = categoryDao.getCategoryByName(userId, defaultName)
                 if (existing == null) {
-                    categoryDao.insertCategory(CategoryEntity(name = defaultName))
+                    categoryDao.insertCategory(CategoryEntity(name = defaultName, ownerId = userId))
                 }
                 defaultName
             } else expenseEntity.title.trim()
 
-            val toInsert = expenseEntity.copy(title = title)
+            val toInsert = expenseEntity.copy(title = title, ownerId = userId)
             dao.insertExpense(toInsert)
             true
         } catch (_: Throwable) {
@@ -52,7 +56,7 @@ class AddExpenseViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val trimmed = categoryEntity.name.trim()
-                categoryDao.insertCategory(CategoryEntity(name = trimmed))
+                categoryDao.insertCategory(CategoryEntity(name = trimmed, ownerId = userId))
                 withContext(Dispatchers.Main) { onResult(true) }
             } catch (_: Throwable) {
                 withContext(Dispatchers.Main) { onResult(false) }

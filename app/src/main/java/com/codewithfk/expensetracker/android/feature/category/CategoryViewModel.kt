@@ -8,6 +8,7 @@ import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.CategorySummary
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
+import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -16,24 +17,27 @@ import javax.inject.Inject
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val categoryDao: CategoryDao,
-    private val expenseDao: ExpenseDao
+    private val expenseDao: ExpenseDao,
+    private val currentUserProvider: CurrentUserProvider
 ) : BaseViewModel() {
 
-    val categories = categoryDao.getAllCategories()
+    private val userId: String = currentUserProvider.getUserId() ?: ""
+
+    val categories = categoryDao.getAllCategories(userId)
 
     fun getCategoryTotals(month: String? = null): Flow<List<CategorySummary>> {
-        return expenseDao.getCategoryTotals(month)
+        return expenseDao.getCategoryTotals(userId, month)
     }
 
     fun getExpensesForCategory(name: String, month: String? = null): Flow<List<ExpenseEntity>> {
-        return expenseDao.getExpensesByCategory(name, month)
+        return expenseDao.getExpensesByCategory(userId, name, month)
     }
 
     fun insertCategory(category: CategoryEntity) {
         viewModelScope.launch {
             val trimmed = category.name.trim()
             if (trimmed.isNotEmpty()) {
-                categoryDao.insertCategory(CategoryEntity(name = trimmed))
+                categoryDao.insertCategory(CategoryEntity(name = trimmed, ownerId = userId))
             }
         }
     }
@@ -46,17 +50,17 @@ class CategoryViewModel @Inject constructor(
                 if (category.name.equals(otherName, ignoreCase = true)) return@launch
 
                 // Ensure default exists
-                var other = categoryDao.getCategoryByName(otherName)
+                var other = categoryDao.getCategoryByName(userId, otherName)
                 if (other == null) {
-                    categoryDao.insertCategory(CategoryEntity(name = otherName))
-                    other = categoryDao.getCategoryByName(otherName)
+                    categoryDao.insertCategory(CategoryEntity(name = otherName, ownerId = userId))
+                    other = categoryDao.getCategoryByName(userId, otherName)
                 }
 
                 // Reassign expenses from this category to default
-                expenseDao.reassignExpensesToCategory(category.name, other?.name ?: otherName)
+                expenseDao.reassignExpensesToCategory(userId, category.name, other?.name ?: otherName)
 
                 // Now delete the category
-                categoryDao.deleteCategory(category)
+                categoryDao.deleteCategory(CategoryEntity(id = category.id, name = category.name, ownerId = userId))
             } catch (t: Throwable) {
                 // ignore or log
             }
@@ -70,7 +74,7 @@ class CategoryViewModel @Inject constructor(
                 val id = category.id
                 val newNameTrimmed = category.name.trim()
                 if (id != null) {
-                    val existing = categoryDao.getCategoryById(id)
+                    val existing = categoryDao.getCategoryById(userId, id)
                     if (existing != null && !existing.name.equals(newNameTrimmed, ignoreCase = true)) {
                         // do not allow renaming default to something else? If existing is default, block
                         val otherName = "Khác"
@@ -79,10 +83,10 @@ class CategoryViewModel @Inject constructor(
                             return@launch
                         }
                         // reassign expenses from old name to new name
-                        expenseDao.reassignExpensesToCategory(existing.name, newNameTrimmed)
+                        expenseDao.reassignExpensesToCategory(userId, existing.name, newNameTrimmed)
                     }
                 }
-                categoryDao.updateCategory(CategoryEntity(id = category.id, name = newNameTrimmed))
+                categoryDao.updateCategory(CategoryEntity(id = category.id, name = newNameTrimmed, ownerId = userId))
             } catch (t: Throwable) {
                 // ignore or log
             }

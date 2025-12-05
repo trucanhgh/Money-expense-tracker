@@ -68,7 +68,7 @@ fun CategoryListContent(
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Khoản chi", style = MaterialTheme.typography.titleLarge)
+                    ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Button(onClick = { filterByMonth.value = !filterByMonth.value }) {
                             ExpenseTextView(text = if (filterByMonth.value) "Tháng này" else "Tất cả")

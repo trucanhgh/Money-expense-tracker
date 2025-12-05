@@ -69,8 +69,9 @@ fun GoalDetailContent(
     val contributionsFlow = getContributionsForGoal(name, null)
     val contributions by contributionsFlow.collectAsState(initial = emptyList())
 
-    // total contributed to this goal (consider Income positive, Expense negative)
-    val total = contributions.fold(0.0) { acc, e -> if (e.type == "Income") acc + e.amount else acc + (-e.amount) }
+    // total contributed to this goal: treat Expense as a contribution (money moved into goal) and Income as a withdrawal (money moved out)
+    // This way when user contributes to a goal we record an Expense (global balance decreases) but goal total increases.
+    val total = contributions.fold(0.0) { acc, e -> if (e.type == "Expense") acc + e.amount else acc - e.amount }
 
     val scope = rememberCoroutineScope()
 
@@ -119,7 +120,7 @@ fun GoalDetailContent(
                         dateMillis.longValue = System.currentTimeMillis()
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
-                        ExpenseTextView(text = "Thêm thu nhập")
+                        ExpenseTextView(text = "Rút khỏi quỹ")
                     }
 
                     Button(onClick = {
@@ -128,7 +129,7 @@ fun GoalDetailContent(
                         dateMillis.longValue = System.currentTimeMillis()
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
-                        ExpenseTextView(text = "Thêm chi tiêu")
+                        ExpenseTextView(text = "Nạp vào quỹ")
                     }
                 }
 
@@ -146,7 +147,8 @@ fun GoalDetailContent(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             ExpenseTextView(text = e.title)
-                            val amountDisplay = if (e.type == "Income") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
+                            // Show positive amount for contributions (Expense), negative for withdrawals (Income)
+                            val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
                             ExpenseTextView(text = amountDisplay)
                         }
                     }
@@ -171,7 +173,9 @@ fun GoalDetailContent(
             TextButton(onClick = { showDialog.value = false }) { ExpenseTextView(text = "Hủy") }
         }, text = {
             Column {
-                ExpenseTextView(text = if (dialogType.value == "Income") "Thêm thu nhập" else "Thêm chi tiêu")
+                // Clarify semantics: Deposit into goal should be an Expense (reduces global balance),
+                // Withdraw from goal should be an Income (increases global balance).
+                ExpenseTextView(text = if (dialogType.value == "Income") "Rút khỏi mục tiêu" else "Nạp vào mục tiêu")
                 Spacer(modifier = Modifier.size(8.dp))
                 OutlinedTextField(value = amountInput.value, onValueChange = { v ->
                     // allow digits and dots and commas
@@ -214,7 +218,16 @@ fun GoalDetailScreen(
         name = name,
         goal = goal,
         getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
-        onInsertContribution = { goalName, amt, dateStr, type -> viewModel.insertContribution(goalName, amt, dateStr, type) }
+        onInsertContribution = { goalName, amt, dateStr, type ->
+            // Ensure deposit => Expense and withdrawal => Income.
+            // If UI mistakenly passes a dialog type opposite to semantics, normalize here.
+            val normalizedType = when (type) {
+                "Expense", "expense" -> "Expense"
+                "Income", "income" -> "Income"
+                else -> "Expense"
+            }
+            viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+        }
     )
 }
 
@@ -222,8 +235,8 @@ fun GoalDetailScreen(
 @Composable
 fun PreviewGoalDetailContent() {
     val sampleContributions = listOf(
-        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 1, title = "Đóng góp 1", amount = 200000.0, date = "01/12/2025", type = "Income"),
-        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Rút tiền", amount = 50000.0, date = "02/12/2025", type = "Expense")
+        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 1, title = "Đóng góp 1", amount = 200000.0, date = "01/12/2025", type = "Expense"),
+        com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Rút tiền", amount = 50000.0, date = "02/12/2025", type = "Income")
     )
     val sampleGoal = GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0)
     GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }

@@ -9,6 +9,6 @@ data class GoalEntity(
     val name: String,
     val targetAmount: Double = 0.0,
     val frequency: String? = null, // "weekly", "monthly" or null
-    val reminderEnabled: Boolean = false
+    val reminderEnabled: Boolean = false,
+    val ownerId: String = "" // owner / user id
 )
-

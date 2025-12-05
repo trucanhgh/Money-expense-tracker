@@ -7,6 +7,7 @@ import com.codewithfk.expensetracker.android.data.dao.GoalDao
 import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
+import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -15,33 +16,36 @@ import javax.inject.Inject
 @HiltViewModel
 class GoalViewModel @Inject constructor(
     private val goalDao: GoalDao,
-    private val expenseDao: ExpenseDao
+    private val expenseDao: ExpenseDao,
+    private val currentUserProvider: CurrentUserProvider
 ) : BaseViewModel() {
 
-    val goals: Flow<List<GoalEntity>> = goalDao.getAllGoals()
+    private val userId: String = currentUserProvider.getUserId() ?: ""
+
+    val goals: Flow<List<GoalEntity>> = goalDao.getAllGoals(userId)
 
     fun getContributionsForGoal(name: String, month: String? = null): Flow<List<ExpenseEntity>> {
-        return expenseDao.getExpensesByCategory(name, month)
+        return expenseDao.getExpensesByCategory(userId, name, month)
     }
 
     fun insertGoal(goal: GoalEntity) {
         viewModelScope.launch {
             val trimmed = goal.name.trim()
             if (trimmed.isNotEmpty()) {
-                goalDao.insertGoal(GoalEntity(name = trimmed, targetAmount = goal.targetAmount, frequency = goal.frequency, reminderEnabled = goal.reminderEnabled))
+                goalDao.insertGoal(GoalEntity(name = trimmed, targetAmount = goal.targetAmount, frequency = goal.frequency, reminderEnabled = goal.reminderEnabled, ownerId = userId))
             }
         }
     }
 
     fun updateGoal(goal: GoalEntity) {
         viewModelScope.launch {
-            goalDao.updateGoal(goal)
+            goalDao.updateGoal(goal.copy(ownerId = userId))
         }
     }
 
     fun deleteGoal(goal: GoalEntity) {
         viewModelScope.launch {
-            goalDao.deleteGoal(goal)
+            goalDao.deleteGoal(goal.copy(ownerId = userId))
         }
     }
 
@@ -51,7 +55,7 @@ class GoalViewModel @Inject constructor(
     fun insertContribution(goalName: String, amount: Double, date: String, type: String = "Expense") {
         viewModelScope.launch {
             try {
-                val e = ExpenseEntity(null, goalName.trim(), amount, date, type)
+                val e = ExpenseEntity(null, goalName.trim(), amount, date, type, ownerId = userId)
                 expenseDao.insertExpense(e)
             } catch (_: Throwable) {
             }

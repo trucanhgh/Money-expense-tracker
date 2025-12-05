@@ -7,13 +7,15 @@ import com.codewithfk.expensetracker.android.base.UiEvent
 import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
+import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(val dao: ExpenseDao) : BaseViewModel() {
-    val expenses = dao.getAllExpense()
+class HomeViewModel @Inject constructor(val dao: ExpenseDao, private val currentUserProvider: CurrentUserProvider) : BaseViewModel() {
+    private val userId: String = currentUserProvider.getUserId() ?: ""
+    val expenses = dao.getAllExpense(userId)
 
     override fun onEvent(event: UiEvent) {
         when (event) {

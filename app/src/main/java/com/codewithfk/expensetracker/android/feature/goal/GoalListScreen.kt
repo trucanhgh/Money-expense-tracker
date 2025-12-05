@@ -88,7 +88,9 @@ fun GoalListContent(
                 LazyColumn {
                     items(goals, key = { it.id ?: 0 }) { g ->
                         val contributionsForG by getContributionsForGoal(g.name, null).collectAsState(initial = emptyList())
-                        val contributedTotal = contributionsForG.fold(0.0) { acc, e -> if (e.type == "Income") acc + e.amount else acc + (-e.amount) }
+                        // Treat Expense as contribution (money moved into the goal) and Income as withdrawal
+                        // so that goal total = sum(Expense) - sum(Income)
+                        val contributedTotal = contributionsForG.fold(0.0) { acc, e -> if (e.type == "Expense") acc + e.amount else acc - e.amount }
 
                         Card(
                             modifier = Modifier

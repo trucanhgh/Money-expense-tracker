@@ -9,5 +9,6 @@ data class ExpenseEntity(
     val title: String,
     val amount: Double,
     val date: String,
-    val type: String
+    val type: String,
+    val ownerId: String = "" // user id / owner for multi-user scoping
 )
