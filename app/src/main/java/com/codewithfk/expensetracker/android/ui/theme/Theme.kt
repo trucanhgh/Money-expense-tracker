@@ -21,25 +21,24 @@ private val DarkColorScheme = darkColorScheme(
     primary = ThemeColors.Night.primary,
     secondary = ThemeColors.Night.secondary,
     tertiary = ThemeColors.Night.tertiary,
-    onPrimary = ThemeColors.Night.text,
-    outline = ThemeColors.Night.text
+    background = ThemeColors.Night.background,
+    surface = ThemeColors.Night.surface,
+    onPrimary = ThemeColors.Night.onPrimary,
+    onBackground = ThemeColors.Night.onBackground,
+    onSurface = ThemeColors.Night.onSurface,
+    outline = ThemeColors.Night.secondary
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = ThemeColors.Day.primary,
     secondary = ThemeColors.Day.secondary,
     tertiary = ThemeColors.Day.tertiary,
-    onPrimary = ThemeColors.Day.text
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = ThemeColors.Day.background,
+    surface = ThemeColors.Day.surface,
+    onPrimary = ThemeColors.Day.onPrimary,
+    onBackground = ThemeColors.Day.onBackground,
+    onSurface = ThemeColors.Day.onSurface,
+    outline = ThemeColors.Day.secondary
 )
 
 @Composable
@@ -63,7 +62,8 @@ fun ExpenseTrackerAndroidTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            // For light theme we want dark status bar icons; for dark theme we want light icons
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

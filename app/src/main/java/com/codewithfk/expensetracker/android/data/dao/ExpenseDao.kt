@@ -19,7 +19,7 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense_table WHERE ownerId = :userId AND type = 'Expense' ORDER BY amount DESC LIMIT 5")
     fun getTopExpenses(userId: String): Flow<List<ExpenseEntity>>
 
-    @Query("SELECT type, date, SUM(amount) AS total_amount FROM expense_table WHERE ownerId = :userId AND type = :type GROUP BY type, date ORDER BY date")
+    @Query("SELECT type, date, SUM(amount) AS total_amount FROM expense_table WHERE ownerId = :userId AND type = :type GROUP BY type, date")
     fun getAllExpenseByDate(userId: String, type: String = "Expense"): Flow<List<ExpenseSummary>>
 
     @Insert
@@ -52,7 +52,7 @@ interface ExpenseDao {
 
     // Get expenses belonging to a category, optionally filtered by month (MM/YYYY)
     @Query(
-        "SELECT * FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%') AND (:month IS NULL OR substr(date,4) = :month) ORDER BY date DESC"
+        "SELECT * FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%') AND (:month IS NULL OR substr(date,4) = :month)"
     )
     fun getExpensesByCategory(userId: String, categoryName: String, month: String? = null): Flow<List<ExpenseEntity>>
 }

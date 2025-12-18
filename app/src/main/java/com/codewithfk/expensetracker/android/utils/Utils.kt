@@ -59,15 +59,15 @@ object Utils {
     }
 
     fun getMilliFromDate(dateFormat: String?): Long {
-        var date = Date()
+        if (dateFormat == null) return 0L
         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        try {
-            date = formatter.parse(dateFormat)
+        return try {
+            val parsed = formatter.parse(dateFormat)
+            parsed?.time ?: 0L
         } catch (e: ParseException) {
-            e.printStackTrace()
+            // If parsing fails, return epoch 0 so the malformed date sorts as oldest.
+            0L
         }
-        println("Today is $date")
-        return date.time
     }
 
     fun getItemIcon(item: ExpenseEntity): Int {

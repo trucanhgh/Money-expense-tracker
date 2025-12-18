@@ -29,6 +29,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -46,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -60,7 +60,6 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.base.AddExpenseNavigationEvent
 import com.codewithfk.expensetracker.android.base.NavigationEvent
@@ -115,7 +114,7 @@ fun AddExpenseContent(
                 ExpenseTextView(
                     text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}",
                     style = Typography.titleLarge,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .padding(16.dp)
                         .align(Alignment.Center)
@@ -237,7 +236,7 @@ fun DataForm(
             .clip(
                 RoundedCornerShape(16.dp)
             )
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
@@ -262,7 +261,7 @@ fun DataForm(
             value = amount.value,
             onValueChange = { newValue ->
                 amount.value = newValue.filter { it.isDigit() || it == '.' }
-            }, textStyle = TextStyle(color = Color.Black),
+            }, textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
             visualTransformation = { text ->
                 val out = "₫" + text.text
                  val currencyOffsetTranslator = object : OffsetMapping {
@@ -281,11 +280,12 @@ fun DataForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { ExpenseTextView(text = "Nhập số tiền") },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Black,
-                disabledBorderColor = Color.Black, disabledTextColor = Color.Black,
-                disabledPlaceholderColor = Color.Black,
-                focusedTextColor = Color.Black,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
             )
         )
         Spacer(modifier = Modifier.size(24.dp))
@@ -299,8 +299,8 @@ fun DataForm(
                 .clickable { dateDialogVisibility.value = true },
             enabled = false,
             colors = OutlinedTextFieldDefaults.colors(
-                disabledBorderColor = Color.Black, disabledTextColor = Color.Black,
-                disabledPlaceholderColor = Color.Black,
+                disabledBorderColor = MaterialTheme.colorScheme.outline, disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
             ),
             placeholder = { ExpenseTextView(text = "Chọn ngày") })
         Spacer(modifier = Modifier.size(24.dp))
@@ -322,7 +322,7 @@ fun DataForm(
             ExpenseTextView(
                 text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}",
                 fontSize = 14.sp,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -369,19 +369,19 @@ fun CategoryDropdownWithAdd(
                     .fillMaxWidth()
                     .weight(1f)
                     .menuAnchor(),
-                textStyle = TextStyle(fontFamily = InterFontFamily, color = Color.Black),
+                textStyle = TextStyle(fontFamily = InterFontFamily, color = MaterialTheme.colorScheme.onSurface),
                 readOnly = true,
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Black,
-                    disabledBorderColor = Color.Black, disabledTextColor = Color.Black,
-                    disabledPlaceholderColor = Color.Black,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline, disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
 
                     )
             )
@@ -411,7 +411,7 @@ fun CategoryDropdownWithAdd(
 
         Spacer(modifier = Modifier.width(8.dp))
         IconButton(onClick = { showDialog = true }) {
-            Icon(painter = painterResource(id = R.drawable.ic_add), contentDescription = null)
+            Icon(painter = painterResource(id = R.drawable.ic_add), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 
@@ -492,19 +492,19 @@ fun ExpenseDropDown(listOfItems: List<String>, onItemSelected: (item: String) ->
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            textStyle = TextStyle(fontFamily = InterFontFamily, color = Color.Black),
+            textStyle = TextStyle(fontFamily = InterFontFamily, color = MaterialTheme.colorScheme.onSurface),
             readOnly = true,
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded.value)
             },
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Black,
-                unfocusedBorderColor = Color.Black,
-                disabledBorderColor = Color.Black, disabledTextColor = Color.Black,
-                disabledPlaceholderColor = Color.Black,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                disabledBorderColor = MaterialTheme.colorScheme.outline, disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
 
             )
         )

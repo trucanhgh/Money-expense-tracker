@@ -98,7 +98,7 @@ fun GoalListContent(
                                 .padding(vertical = 8.dp)
                                 .height(160.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2F8))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             // Use a column to place title at top, then the progress pill one row lower
                             Column(modifier = Modifier
@@ -114,7 +114,7 @@ fun GoalListContent(
                                     // Top-right: overflow menu ("...")
                                     var menuExpanded by remember { mutableStateOf(false) }
                                     IconButton(onClick = { menuExpanded = true }) {
-                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = Color.Black)
+                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
                                     }
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                         DropdownMenuItem(text = { Text("Đổi tên") }, onClick = {
@@ -137,15 +137,15 @@ fun GoalListContent(
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
                                     Card(
                                         shape = RoundedCornerShape(999.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF6C757D))
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
                                     ) {
                                         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(painter = painterResource(id = R.drawable.ic_income), contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                            Icon(painter = painterResource(id = R.drawable.ic_income), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(20.dp))
                                             Spacer(modifier = Modifier.size(8.dp))
                                             val contributedText = Utils.formatCurrency(contributedTotal)
                                             val targetText = Utils.formatCurrency(g.targetAmount)
                                             // Put amount on a separate line if needed by using Text with maxLines=2
-                                            ExpenseTextView(text = "$contributedText / $targetText", color = Color.White, maxLines = 2)
+                                            ExpenseTextView(text = "$contributedText / $targetText", color = MaterialTheme.colorScheme.onSecondary, maxLines = 2)
                                         }
                                     }
                                 }

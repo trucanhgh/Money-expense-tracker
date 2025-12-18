@@ -30,25 +30,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
-import com.codewithfk.expensetracker.android.ui.theme.Zinc
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.base.HomeNavigationEvent
 import com.codewithfk.expensetracker.android.base.NavigationEvent
 import com.codewithfk.expensetracker.android.ui.theme.Green
-import com.codewithfk.expensetracker.android.ui.theme.LightGrey
 import com.codewithfk.expensetracker.android.ui.theme.Red
 import com.codewithfk.expensetracker.android.ui.theme.Typography
 import com.codewithfk.expensetracker.android.utils.Utils
@@ -86,14 +83,14 @@ fun HomeContent(
                     ExpenseTextView(
                         text = "Expense Tracker",
                         style = Typography.titleLarge,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 // top-right menu (Cài đặt / Đăng xuất)
                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                     var expandedMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = Color.White)
+                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
                         DropdownMenuItem(text = { ExpenseTextView(text = "Cài đặt") }, onClick = {
@@ -171,7 +168,7 @@ fun MultiFloatingActionButton(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(color = Zinc, shape = RoundedCornerShape(12.dp))
+                            .background(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp))
                             .clickable {
                                 onAddIncomeClicked.invoke()
                             },
@@ -180,14 +177,14 @@ fun MultiFloatingActionButton(
                         Icon(
                             painter = painterResource(R.drawable.ic_income),
                             contentDescription = "Thêm thu nhập",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(color = Zinc, shape = RoundedCornerShape(12.dp))
+                            .background(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp))
                             .clickable {
                                 onAddExpenseClicked.invoke()
                             },
@@ -196,7 +193,7 @@ fun MultiFloatingActionButton(
                         Icon(
                             painter = painterResource(R.drawable.ic_expense),
                             contentDescription = "Thêm chi tiêu",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
@@ -207,7 +204,7 @@ fun MultiFloatingActionButton(
                     .padding(8.dp)
                     .size(60.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(color = Zinc)
+                    .background(color = MaterialTheme.colorScheme.primary)
                     .clickable {
                         expanded = !expanded
                     },
@@ -234,7 +231,7 @@ fun CardItem(
             .fillMaxWidth()
             .height(200.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(Zinc)
+            .background(MaterialTheme.colorScheme.primary)
             .padding(16.dp)
     ) {
         Box(
@@ -246,11 +243,11 @@ fun CardItem(
                 ExpenseTextView(
                     text = "Tổng số dư",
                     style = Typography.titleMedium,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 ExpenseTextView(
-                    text = balance, style = Typography.headlineLarge, color = Color.White,
+                    text = balance, style = Typography.headlineLarge, color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
@@ -347,10 +344,16 @@ fun TransactionItem(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.size(8.dp))
+            Image(
+                painter = painterResource(id = icon),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.size(8.dp))
             Column {
                 ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.size(6.dp))
-                ExpenseTextView(text = date, fontSize = 13.sp, color = LightGrey)
+                ExpenseTextView(text = date, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
         }
         ExpenseTextView(
@@ -373,10 +376,10 @@ fun CardRowItem(modifier: Modifier, title: String, amount: String, imaget: Int) 
                 contentDescription = null,
             )
             Spacer(modifier = Modifier.size(8.dp))
-            ExpenseTextView(text = title, style = Typography.bodyLarge, color = Color.White)
+            ExpenseTextView(text = title, style = Typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
         }
         Spacer(modifier = Modifier.size(4.dp))
-        ExpenseTextView(text = amount, style = Typography.titleLarge, color = Color.White)
+        ExpenseTextView(text = amount, style = Typography.titleLarge, color = MaterialTheme.colorScheme.onPrimary)
     }
 }
 

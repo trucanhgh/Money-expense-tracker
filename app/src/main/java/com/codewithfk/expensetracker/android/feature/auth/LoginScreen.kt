@@ -23,11 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,7 +45,7 @@ fun LoginContent(
     onLoginClick: () -> Unit,
     onNavigateRegister: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
+    var passwordVisible by remember { mutableStateOf(false) }
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -54,7 +55,20 @@ fun LoginContent(
 
                 OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "Tên đăng nhập") })
                 Spacer(modifier = Modifier.size(12.dp))
-                OutlinedTextField(value = password, onValueChange = onPasswordChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "Mật khẩu") })
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { ExpenseTextView(text = "Mật khẩu") },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        // Use a simple clickable text toggle to avoid depending on material icon artifacts in this project.
+                        ExpenseTextView(
+                            text = if (passwordVisible) "Ẩn" else "Hiện",
+                            modifier = Modifier.clickable { passwordVisible = !passwordVisible }
+                        )
+                    }
+                )
                 Spacer(modifier = Modifier.size(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = remember, onCheckedChange = onRememberChange)

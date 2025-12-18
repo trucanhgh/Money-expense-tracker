@@ -15,8 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
@@ -37,7 +37,6 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineDataSet
-import androidx.core.graphics.toColorInt
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -73,7 +72,7 @@ fun StatsContent(
                 painter = painterResource(id = R.drawable.dots_menu),
                 contentDescription = null,
                 modifier = Modifier.align(Alignment.CenterEnd),
-                colorFilter = ColorFilter.tint(Color.Black)
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
             )
         }
 
@@ -109,6 +108,9 @@ fun StatsScreen(navController: NavController, viewModel: StatsViewModel = hiltVi
 @Composable
 fun LineChart(entries: List<Entry>) {
     val context = LocalContext.current
+    // Capture theme colors (toArgb) here in the @Composable scope so we don't call MaterialTheme inside the AndroidView update lambda
+    val primaryColorArgb = MaterialTheme.colorScheme.primary.toArgb()
+    val onBackgroundColorArgb = MaterialTheme.colorScheme.onBackground.toArgb()
     AndroidView(
         factory = {
             // Inflate into a temporary FrameLayout parent to avoid passing null
@@ -122,14 +124,14 @@ fun LineChart(entries: List<Entry>) {
         val lineChart = view.findViewById<LineChart>(R.id.lineChart)
 
         val dataSet = LineDataSet(entries, "Chi tiêu").apply {
-            color = "#FF2F7E79".toColorInt()
-            valueTextColor = android.graphics.Color.BLACK
+            color = primaryColorArgb
+            valueTextColor = onBackgroundColorArgb
             lineWidth = 3f
             axisDependency = YAxis.AxisDependency.RIGHT
             setDrawFilled(true)
             mode = LineDataSet.Mode.CUBIC_BEZIER
             valueTextSize = 12f
-            valueTextColor = "#FF2F7E79".toColorInt()
+            valueTextColor = onBackgroundColorArgb
             val drawable = ContextCompat.getDrawable(context, R.drawable.char_gradient)
             drawable?.let {
                 fillDrawable = it
