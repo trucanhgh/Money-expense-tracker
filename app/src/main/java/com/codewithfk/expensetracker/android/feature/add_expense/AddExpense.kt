@@ -5,12 +5,14 @@ package com.codewithfk.expensetracker.android.feature.add_expense
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+// dark mode removed; always use light-mode defaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,7 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -67,9 +71,11 @@ import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.ui.theme.InterFontFamily
 import com.codewithfk.expensetracker.android.ui.theme.LightGrey
+import com.codewithfk.expensetracker.android.ui.theme.LocalAppUi
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.ui.theme.Typography
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -89,16 +95,33 @@ fun AddExpenseContent(
 ) {
     val menuExpanded = remember { mutableStateOf(false) }
 
+    // Read theme-aware UI values
+    val appUi = LocalAppUi.current
+    // dark-mode removed: always use light-mode fallbacks
+    val fallbackLight = listOf(Color(0xFF9BA4B5), Color(0xFF9BA4B5))
+    val topBarGradientColors = appUi.topBarGradientColors.takeIf { list ->
+        list.isNotEmpty() && list.none { it == Color.Unspecified }
+    } ?: fallbackLight
+
+    val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
+        Color(0xFF9BA4B5)
+    } else appUi.topBarTint
+
     Surface(modifier = Modifier.fillMaxSize()) {
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
             val (nameRow, card, topBar) = createRefs()
-            Image(painter = painterResource(id = R.drawable.ic_topbar),
-                contentDescription = null,
-                modifier = Modifier.constrainAs(topBar) {
+
+            // Draw topbar as a Box with theme-aware gradient so it immediately uses the requested colors
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .constrainAs(topBar) {
                     top.linkTo(parent.top)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                })
+                }
+                .background(brush = Brush.linearGradient(colors = topBarGradientColors)))
+
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 64.dp, start = 16.dp, end = 16.dp)
@@ -107,26 +130,23 @@ fun AddExpenseContent(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }) {
-                Image(painter = painterResource(id = R.drawable.ic_back), contentDescription = null,
+                Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .clickable { onBack() })
+                        .clickable { onBack() }, tint = topBarTint)
                 ExpenseTextView(
                     text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}",
                     style = Typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = topBarTint,
                     modifier = Modifier
                         .padding(16.dp)
                         .align(Alignment.Center)
                 )
                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Image(
-                        painter = painterResource(id = R.drawable.dots_menu),
-                        contentDescription = null,
+                    Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint,
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .clickable { onMenuClicked() }
-                    )
+                            .clickable { onMenuClicked() })
                     DropdownMenu(
                         expanded = menuExpanded.value,
                         onDismissRequest = { menuExpanded.value = false }
@@ -526,14 +546,17 @@ fun PreviewAddExpenseContent() {
     val sampleCategories = listOf(CategoryEntity(id = 1, name = "Ăn uống"), CategoryEntity(id = 2, name = "Di chuyển"))
     val sampleGoals = listOf(com.codewithfk.expensetracker.android.data.model.GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0))
 
-    AddExpenseContent(
-        isIncome = false,
-        initialPrefill = "",
-        categoriesFlowProvider = { flowOf(sampleCategories) },
-        goalsFlowProvider = { flowOf(sampleGoals) },
-        onBack = {},
-        onMenuClicked = {},
-        onAddExpenseClick = {},
-        onInsertCategory = { _, cb -> cb(true) }
-    )
+    // Wrap preview in the app theme so LocalAppUi and theme colors are provided
+    ExpenseTrackerAndroidTheme(darkTheme = false) {
+        AddExpenseContent(
+            isIncome = false,
+            initialPrefill = "",
+            categoriesFlowProvider = { flowOf(sampleCategories) },
+            goalsFlowProvider = { flowOf(sampleGoals) },
+            onBack = {},
+            onMenuClicked = {},
+            onAddExpenseClick = {},
+            onInsertCategory = { _, cb -> cb(true) }
+        )
+    }
 }

@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.dagger.hilt)
 }
 
+kapt {
+    // Tell kapt to be more lenient about unresolved types in generated stubs
+    correctErrorTypes = true
+}
+
 android {
     namespace = "com.codewithfk.expensetracker.android"
     compileSdk = 34
@@ -61,6 +66,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Material Components (Android) for XML themes (Theme.MaterialComponents.DayNight)
+    implementation("com.google.android.material:material:1.9.0")
     implementation(libs.constraintlayout)
     implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
     implementation(libs.firebase.database.ktx)

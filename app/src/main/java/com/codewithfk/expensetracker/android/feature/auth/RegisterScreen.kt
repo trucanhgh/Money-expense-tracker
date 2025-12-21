@@ -1,5 +1,7 @@
 package com.codewithfk.expensetracker.android.feature.auth
 
+import android.content.res.Configuration
+// dark mode removed; always use light-mode defaults
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -40,18 +44,25 @@ fun RegisterContent(
     onCreateAccount: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    // dark mode removed; use light defaults
+    val isDark = false
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(modifier = Modifier.size(24.dp))
-                ExpenseTextView(text = "Đăng ký", style = MaterialTheme.typography.headlineSmall)
+                // Use black text in light theme for clearer contrast
+                ExpenseTextView(
+                    text = "\u0110\u0103ng k\u00fd",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (!isDark) Color.Black else MaterialTheme.colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.size(24.dp))
 
                 OutlinedTextField(
                     value = username,
                     onValueChange = onUsernameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "Tên đăng nhập") }
+                    placeholder = { ExpenseTextView(text = "T\u00ean \u0111\u0103ng nh\u1eadp") }
                 )
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -60,7 +71,7 @@ fun RegisterContent(
                     value = password,
                     onValueChange = onPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "Mật khẩu (ít nhất 6 ký tự)") }
+                    placeholder = { ExpenseTextView(text = "M\u1eadt kh\u1ea9u (\u00edt nh\u1ea5t 6 k\u00fd t\u1ef1)") }
                 )
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -69,13 +80,17 @@ fun RegisterContent(
                     value = confirmPassword,
                     onValueChange = onConfirmPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "Xác nhận mật khẩu") }
+                    placeholder = { ExpenseTextView(text = "X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u") }
                 )
 
                 Spacer(modifier = Modifier.size(16.dp))
 
-                Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) {
-                    ExpenseTextView(text = "Tạo tài khoản")
+                Button(
+                    onClick = onCreateAccount,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    ExpenseTextView(text = "T\u1ea1o t\u00e0i kho\u1ea3n")
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -138,18 +153,39 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
     )
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Light Preview")
 @Composable
-fun PreviewRegisterContent() {
-    RegisterContent(
-        username = "",
-        password = "",
-        confirmPassword = "",
-        errorMessage = null,
-        successMessage = null,
-        onUsernameChange = {},
-        onPasswordChange = {},
-        onConfirmPasswordChange = {},
-        onCreateAccount = {}
-    )
+fun PreviewRegisterContent_Light() {
+    ExpenseTrackerAndroidTheme(darkTheme = false, dynamicColor = false) {
+        RegisterContent(
+            username = "",
+            password = "",
+            confirmPassword = "",
+            errorMessage = null,
+            successMessage = null,
+            onUsernameChange = {},
+            onPasswordChange = {},
+            onConfirmPasswordChange = {},
+            onCreateAccount = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Dark Preview")
+@Composable
+fun PreviewRegisterContent_Dark() {
+    // Dark preview removed; use light theme for consistency
+    ExpenseTrackerAndroidTheme(darkTheme = false, dynamicColor = false) {
+        RegisterContent(
+            username = "",
+            password = "",
+            confirmPassword = "",
+            errorMessage = null,
+            successMessage = null,
+            onUsernameChange = {},
+            onPasswordChange = {},
+            onConfirmPasswordChange = {},
+            onCreateAccount = {}
+        )
+    }
 }

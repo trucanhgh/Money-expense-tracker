@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +40,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineDataSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 
 /**
  * Stateless content for Stats screen. Accepts providers for flows and a mapper to convert summaries to Entries.
@@ -66,6 +68,7 @@ fun StatsContent(
                 text = "Thống kê",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
+                color = Color.Black,
                 modifier = Modifier.align(Alignment.Center)
             )
             Image(
@@ -167,12 +170,14 @@ fun PreviewStatsContent() {
     val sampleExpenses = listOf(
         com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 1, title = "Ăn uống", amount = 120000.0, date = "01/12/2025", type = "Expense")
     )
-    StatsContent(
-        entriesSummaryFlowProvider = { flowOf(sampleSummaries) },
-        topEntriesFlowProvider = { flowOf(sampleExpenses) },
-        entriesMapper = { summaries ->
-            // simple mapper for preview
-            summaries.mapIndexed { idx, s -> Entry(idx.toFloat(), s.total_amount.toFloat()) }
-        }
-    )
+    ExpenseTrackerAndroidTheme {
+        StatsContent(
+            entriesSummaryFlowProvider = { flowOf(sampleSummaries) },
+            topEntriesFlowProvider = { flowOf(sampleExpenses) },
+            entriesMapper = { summaries ->
+                // simple mapper for preview
+                summaries.mapIndexed { idx, s -> Entry(idx.toFloat(), s.total_amount.toFloat()) }
+            }
+        )
+    }
 }

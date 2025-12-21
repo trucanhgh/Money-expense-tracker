@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.codewithfk.expensetracker.android.data.model.CategorySummary
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
@@ -48,21 +49,23 @@ fun CategoryRow(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // left: name
-        ExpenseTextView(text = summary.name, style = MaterialTheme.typography.bodyLarge)
+        ExpenseTextView(text = summary.name, style = MaterialTheme.typography.bodyLarge, color = Color.Black)
 
         // right: total + overflow menu
         Row(verticalAlignment = Alignment.CenterVertically) {
             val totalText = String.format(Locale.getDefault(), "%,.0f", summary.total)
             // show total with color depending on sign
             val color = if (summary.total < 0) {
-                androidx.compose.ui.graphics.Color(0xFFB00020) // red-ish
+                // negative: use app Red
+                com.codewithfk.expensetracker.android.ui.theme.Red
             } else {
-                androidx.compose.ui.graphics.Color(0xFF2E7D32) // green-ish
+                // positive: use theme secondary (mapped to the user's muted palette)
+                MaterialTheme.colorScheme.secondary
             }
             Text(text = totalText, color = color, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(end = 8.dp))
 
             IconButton(onClick = { menuExpanded = true }) {
-                Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
+                Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More", tint = Color.Black)
             }
 
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {

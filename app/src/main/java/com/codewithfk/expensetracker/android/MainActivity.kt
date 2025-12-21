@@ -6,26 +6,29 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.runtime.Composable
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ExpenseTrackerAndroidTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    NavHostScreen()
-                }
-            }
+            AppRoot()
+        }
+    }
+}
+
+@Composable
+fun AppRoot() {
+    // Force the authored (light) palette and disable dynamic color so runtime matches design
+    com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme(darkTheme = false, dynamicColor = false) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            NavHostScreen()
         }
     }
 }

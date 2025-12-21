@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import kotlinx.coroutines.launch
 
@@ -69,5 +70,7 @@ fun SettingsScreen(navController: NavController, viewModel: AuthViewModel = hilt
 @Preview(showBackground = true)
 @Composable
 fun PreviewSettingsContent() {
-    SettingsContent(rememberedUsername = "demo_user", onClearRemember = {}, onNavigateLogin = {})
+    ExpenseTrackerAndroidTheme {
+        SettingsContent(rememberedUsername = "demo_user", onClearRemember = {}, onNavigateLogin = {})
+    }
 }
