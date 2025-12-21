@@ -3,7 +3,6 @@ package com.codewithfk.expensetracker.android.feature.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +46,6 @@ import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.base.HomeNavigationEvent
 import com.codewithfk.expensetracker.android.base.NavigationEvent
 import com.codewithfk.expensetracker.android.ui.theme.Red
-import com.codewithfk.expensetracker.android.ui.theme.ThemeViewModel
 import com.codewithfk.expensetracker.android.ui.theme.Typography
 import com.codewithfk.expensetracker.android.ui.theme.LocalAppUi
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
@@ -63,22 +61,18 @@ fun HomeContent(
     onAddExpenseClicked: () -> Unit,
     onAddIncomeClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
-    onLogoutClicked: () -> Unit,
-    // current theme flag and toggle callback (defaults keep Preview working)
-    isDark: Boolean = false,
-    onToggleTheme: () -> Unit = {}
+    onLogoutClicked: () -> Unit
 ) {
     val appUi = LocalAppUi.current
 
     // Resolve topBar colors: prefer values from LocalAppUi but fall back to the requested hexes
     val fallbackLight = listOf(Color(0xFF9BA4B5), Color(0xFF9BA4B5))
-    val fallbackDark = listOf(Color(0xFF394867), Color(0xFF394867))
     val topBarGradientColors = appUi.topBarGradientColors.takeIf { list ->
         list.isNotEmpty() && list.none { it == Color.Unspecified }
-    } ?: if (isDark) fallbackDark else fallbackLight
+    } ?: fallbackLight
 
     val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
-        if (isDark) Color(0xFF394867) else Color(0xFF9BA4B5)
+        Color(0xFF9BA4B5)
     } else appUi.topBarTint
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -105,24 +99,20 @@ fun HomeContent(
                  }) {
                  Column(modifier = Modifier.align(Alignment.CenterStart)) {
                      ExpenseTextView(
-                         text = "Expense Tracker",
+                         text = "EXPENSE TRACKER",
                          style = Typography.titleLarge,
                      )
                  }
-                 // top-right menu (Cài đặt / Đăng xuất)
+                 // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
                  Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                      var expandedMenu by remember { mutableStateOf(false) }
                      IconButton(onClick = { expandedMenu = true }) {
-                         Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint)
+                         Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null)
                      }
                      DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
-                        DropdownMenuItem(text = { ExpenseTextView(text = if (isDark) "Chuyển sang sáng" else "Chuyển sang tối") }, onClick = {
-                            // toggle theme
+                        DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
                             expandedMenu = false
-                            onToggleTheme()
-                        })
-                        DropdownMenuItem(text = { ExpenseTextView(text = "Cài đặt") }, onClick = {
-                            expandedMenu = false
+                            // navigate to settings/color picker
                             onSettingsClicked()
                         })
                         DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
@@ -320,10 +310,8 @@ fun TransactionList(
     // Always display newest transactions at top. Dates are stored as dd/MM/yyyy strings; convert to millis to sort.
     val sorted = list.sortedByDescending { Utils.getMillisFromDate(it.date) }
 
-    // Resolve title color depending on theme: black in light, keep onBackground in dark
-    val isDarkTheme = isSystemInDarkTheme()
-    // Use pure white in dark mode for high contrast as requested
-    val sectionTitleColor = if (isDarkTheme) Color.White else Color.Black
+    // Use fixed light-mode colors (no dark/light switching)
+    val sectionTitleColor = Color.Black
 
     LazyColumn(modifier = modifier.padding(horizontal = 16.dp)) {
         item {
@@ -378,9 +366,8 @@ fun TransactionItem(
     modifier: Modifier
 ) {
 
-    val isDarkTheme = isSystemInDarkTheme()
-    // Use pure white in dark mode for transaction titles
-    val transactionTitleColor = if (isDarkTheme) Color.White else Color.Black
+    // Fixed light-mode title color
+    val transactionTitleColor = Color.Black
 
     Box(
         modifier = modifier
@@ -390,12 +377,6 @@ fun TransactionItem(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.size(8.dp))
             // show the icon (tinted by provided color)
-            Icon(
-                painter = painterResource(id = icon),
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(36.dp)
-            )
             Column {
                 ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = transactionTitleColor)
                 Spacer(modifier = Modifier.size(6.dp))
@@ -455,11 +436,6 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
     val state = viewModel.expenses.collectAsState(initial = emptyList())
 
-    // read theme state and pass toggle callback to the content
-    val themeViewModel: ThemeViewModel = hiltViewModel()
-    // collectAsState requires an initial value — use false (light) as default while preference loads
-    val isDark by themeViewModel.isDarkTheme.collectAsState(initial = false)
-
     HomeContent(
         expenses = state.value,
         onSeeAllClicked = { viewModel.onEvent(HomeUiEvent.OnSeeAllClicked) },
@@ -472,9 +448,6 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 popUpTo("/home") { inclusive = true }
             }
         }
-        ,
-        isDark = isDark,
-        onToggleTheme = { themeViewModel.toggleTheme() }
     )
 }
 
@@ -485,7 +458,7 @@ fun PreviewHomeContent() {
         ExpenseEntity(id = 1, title = "Netflix", amount = 120000.0, date = "01/12/2025", type = "Expense"),
         ExpenseEntity(id = 2, title = "Lương", amount = 5000000.0, date = "01/12/2025", type = "Income")
     )
-    // Light preview
+    // Light preview (fixed light mode)
     ExpenseTrackerAndroidTheme(darkTheme = false) {
         HomeContent(
             expenses = sample,
@@ -493,8 +466,7 @@ fun PreviewHomeContent() {
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
             onSettingsClicked = {},
-            onLogoutClicked = {},
-            isDark = false
+            onLogoutClicked = {}
         )
     }
 }
@@ -506,16 +478,15 @@ fun PreviewHomeContentDark() {
         ExpenseEntity(id = 1, title = "Netflix", amount = 120000.0, date = "01/12/2025", type = "Expense"),
         ExpenseEntity(id = 2, title = "Lương", amount = 5000000.0, date = "01/12/2025", type = "Income")
     )
-    // Dark preview
-    ExpenseTrackerAndroidTheme(darkTheme = true) {
+    // Also preview in the same fixed light theme for consistency
+    ExpenseTrackerAndroidTheme(darkTheme = false) {
         HomeContent(
             expenses = sample,
             onSeeAllClicked = {},
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
             onSettingsClicked = {},
-            onLogoutClicked = {},
-            isDark = true
+            onLogoutClicked = {}
         )
     }
 }

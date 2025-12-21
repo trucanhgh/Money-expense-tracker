@@ -1,6 +1,6 @@
 package com.codewithfk.expensetracker.android.feature.auth
 
-import androidx.compose.foundation.isSystemInDarkTheme
+// dark mode support removed; always use light-mode defaults
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,8 +60,9 @@ fun LoginContent(
     onNavigateRegister: () -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
-    // respect system dark mode so we can show black text in light theme
-    val isDark = isSystemInDarkTheme()
+    // dark mode removed; always light
+    val isDark = false
+
     // adaptive text color: white in dark mode, black in light mode
     val adaptiveTextColor = if (isDark) Color.White else Color.Black
     Scaffold(topBar = {}) { padding ->
@@ -69,24 +70,24 @@ fun LoginContent(
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(modifier = Modifier.size(24.dp))
                 ExpenseTextView(
-                    text = "Chào mừng",
+                    text = "Ch\u00e0o m\u1eebng",
                     style = MaterialTheme.typography.headlineSmall,
                     color = if (!isDark) Color.Black else MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.size(24.dp))
 
-                OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "Tên đăng nhập") })
+                OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "T\u00ean \u0111\u0103ng nh\u1eadp") })
                 Spacer(modifier = Modifier.size(12.dp))
                 OutlinedTextField(
                     value = password,
                     onValueChange = onPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "Mật khẩu") },
+                    placeholder = { ExpenseTextView(text = "M\u1eadt kh\u1ea9u") },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         // Use a simple clickable text toggle to avoid depending on material icon artifacts in this project.
                         ExpenseTextView(
-                            text = if (passwordVisible) "Ẩn" else "Hiện",
+                            text = if (passwordVisible) "\u1ea8n" else "Hi\u1ec7n",
                             modifier = Modifier.clickable { passwordVisible = !passwordVisible }
                         )
                     }
@@ -95,7 +96,7 @@ fun LoginContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = remember, onCheckedChange = onRememberChange)
                     Spacer(modifier = Modifier.size(8.dp))
-                    ExpenseTextView(text = "Ghi nhớ đăng nhập", color = adaptiveTextColor)
+                    ExpenseTextView(text = "Ghi nh\u1edb \u0111\u0103ng nh\u1eadp", color = adaptiveTextColor)
                 }
                 Spacer(modifier = Modifier.size(24.dp))
                 Button(
@@ -107,7 +108,7 @@ fun LoginContent(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = androidx.compose.ui.unit.Dp.Hairline, color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        ExpenseTextView(text = "Đăng nhập")
+                        ExpenseTextView(text = "\u0110\u0103ng nh\u1eadp")
                     }
                 }
 
@@ -116,10 +117,10 @@ fun LoginContent(
                     ExpenseTextView(text = msg)
                 }
 
-                // Small 'Đăng ký' link at the bottom-right
+                // Small '\u0110\u0103ng k\u00fd' link at the bottom-right
                 Spacer(modifier = Modifier.size(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    ExpenseTextView(text = "Đăng ký", color = adaptiveTextColor, modifier = Modifier.clickable { onNavigateRegister() })
+                    ExpenseTextView(text = "\u0110\u0103ng k\u00fd", color = adaptiveTextColor, modifier = Modifier.clickable { onNavigateRegister() })
                 }
             }
         }
@@ -208,10 +209,11 @@ fun PreviewLoginContent_Light() {
     }
 }
 
+// Dark preview removed; use light theme for consistency
 @Preview(showBackground = true, uiMode = 32, name = "Dark Preview")
 @Composable
 fun PreviewLoginContent_Dark() {
-    ExpenseTrackerAndroidTheme(darkTheme = true, dynamicColor = false) {
+    ExpenseTrackerAndroidTheme(darkTheme = false, dynamicColor = false) {
         LoginContent(
             username = "",
             password = "",

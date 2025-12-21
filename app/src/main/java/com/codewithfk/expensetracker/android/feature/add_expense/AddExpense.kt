@@ -5,7 +5,7 @@ package com.codewithfk.expensetracker.android.feature.add_expense
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+// dark mode removed; always use light-mode defaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -97,15 +97,14 @@ fun AddExpenseContent(
 
     // Read theme-aware UI values
     val appUi = LocalAppUi.current
-    val isDark = isSystemInDarkTheme()
+    // dark-mode removed: always use light-mode fallbacks
     val fallbackLight = listOf(Color(0xFF9BA4B5), Color(0xFF9BA4B5))
-    val fallbackDark = listOf(Color(0xFF394867), Color(0xFF394867))
     val topBarGradientColors = appUi.topBarGradientColors.takeIf { list ->
         list.isNotEmpty() && list.none { it == Color.Unspecified }
-    } ?: if (isDark) fallbackDark else fallbackLight
+    } ?: fallbackLight
 
     val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
-        if (isDark) Color(0xFF394867) else Color(0xFF9BA4B5)
+        Color(0xFF9BA4B5)
     } else appUi.topBarTint
 
     Surface(modifier = Modifier.fillMaxSize()) {

@@ -1,22 +1,18 @@
 package com.codewithfk.expensetracker.android.ui.theme
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.flowOf
 
 @HiltViewModel
-class ThemeViewModel @Inject constructor(private val prefs: ThemePreferences) : ViewModel() {
-    // Expose the stored preference as a Flow
-    val isDarkTheme: Flow<Boolean> = prefs.isDarkFlow
+class ThemeViewModel @Inject constructor() : ViewModel() {
+    // Dark mode has been removed; always expose light theme
+    val isDarkTheme: Flow<Boolean> = flowOf(false)
 
+    // No-op: preserve signature for compatibility
     fun toggleTheme() {
-        viewModelScope.launch {
-            val curr = prefs.isDarkFlow.first()
-            prefs.setDarkMode(!curr)
-        }
+        // intentionally left blank
     }
 }

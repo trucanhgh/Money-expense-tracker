@@ -1,29 +1,17 @@
 package com.codewithfk.expensetracker.android.ui.theme
 
-import android.content.Context
-import androidx.core.content.edit
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 @Singleton
-class ThemePreferences @Inject constructor(@ApplicationContext private val context: Context) {
-    companion object {
-        const val PREFS_NAME = "settings"
-        const val KEY_DARK_MODE = "dark_mode"
-    }
+class ThemePreferences @Inject constructor() {
+    // Dark mode removed: always expose false so app stays in light mode
+    val isDarkFlow: Flow<Boolean> = flowOf(false)
 
-    private val sharedPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    // Backing MutableStateFlow to expose as a Flow
-    private val _isDarkFlow = MutableStateFlow(sharedPrefs.getBoolean(KEY_DARK_MODE, false))
-    val isDarkFlow: Flow<Boolean> = _isDarkFlow
-
+    // No-op setter to preserve API
     fun setDarkMode(isDark: Boolean) {
-        // write to SharedPreferences and update the flow
-        sharedPrefs.edit { putBoolean(KEY_DARK_MODE, isDark) }
-        _isDarkFlow.value = isDark
+        // intentionally no-op
     }
 }

@@ -3,10 +3,8 @@ package com.codewithfk.expensetracker.android.ui.theme
 import android.app.Activity
 import android.content.res.Resources.Theme
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -44,19 +42,20 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun ExpenseTrackerAndroidTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    // default to false so the app uses the authored palette instead of wallpaper-based dynamic colors
-    dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
+    // Dark mode has been removed; keep a darkTheme parameter for compatibility but ignore it.
+    darkTheme: Boolean = false,
+     // Dynamic color is available on Android 12+
+     // default to false so the app uses the authored palette instead of wallpaper-based dynamic colors
+     dynamicColor: Boolean = false,
+     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            // Only provide dynamic light colors; dark dynamic mode removed
+            dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
     val view = LocalView.current
@@ -66,15 +65,14 @@ fun ExpenseTrackerAndroidTheme(
             window.statusBarColor = colorScheme.primary.toArgb()
             // also set navigation bar color to match the app background so system UI looks consistent
             window.navigationBarColor = colorScheme.background.toArgb()
-            // For light theme we want dark status bar icons; for dark theme we want light icons
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            // Also set navigation bar icon colors (true => dark icons)
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+            // App uses light theme only -> enable dark system icons for status/navigation bars
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
         }
     }
 
-    // Provide per-theme UI values via LocalAppUi so UI code can easily switch between light/dark variations
-    val appUiColors = if (darkTheme) AppUiDark else AppUiLight
+    // Provide per-theme UI values via LocalAppUi (always use light values now)
+    val appUiColors = AppUiLight
 
     CompositionLocalProvider(LocalAppUi provides appUiColors) {
         MaterialTheme(
