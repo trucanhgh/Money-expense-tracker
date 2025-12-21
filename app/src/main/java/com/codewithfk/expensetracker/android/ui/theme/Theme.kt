@@ -1,12 +1,14 @@
+@file:Suppress("UNUSED_PARAMETER", "unused")
+
 package com.codewithfk.expensetracker.android.ui.theme
 
 import android.app.Activity
-import android.content.res.Resources.Theme
 import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,6 +52,8 @@ fun ExpenseTrackerAndroidTheme(
      content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        // honor the compatibility darkTheme flag so callers that pass true still get dark colors
+        darkTheme -> DarkColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             // Only provide dynamic light colors; dark dynamic mode removed
@@ -71,10 +75,11 @@ fun ExpenseTrackerAndroidTheme(
         }
     }
 
-    // Provide per-theme UI values via LocalAppUi (always use light values now)
-    val appUiColors = AppUiLight
-
-    CompositionLocalProvider(LocalAppUi provides appUiColors) {
+    // Provide LocalAppUi and set default LocalContentColor to black so most texts render black by default
+    CompositionLocalProvider(
+        LocalAppUi provides com.codewithfk.expensetracker.android.ui.theme.appUiColors,
+        LocalContentColor provides Color.Black
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

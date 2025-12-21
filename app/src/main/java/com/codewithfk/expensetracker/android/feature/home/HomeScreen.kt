@@ -90,38 +90,39 @@ fun HomeContent(
                 .background(brush = Brush.linearGradient(colors = topBarGradientColors)))
 
             Box(modifier = Modifier
-                 .fillMaxWidth()
-                 .padding(top = 64.dp, start = 16.dp, end = 16.dp)
-                 .constrainAs(nameRow) {
-                     top.linkTo(parent.top)
-                     start.linkTo(parent.start)
-                     end.linkTo(parent.end)
-                 }) {
-                 Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                     ExpenseTextView(
-                         text = "EXPENSE TRACKER",
-                         style = Typography.titleLarge,
-                     )
-                 }
-                 // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
-                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                     var expandedMenu by remember { mutableStateOf(false) }
-                     IconButton(onClick = { expandedMenu = true }) {
-                         Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null)
-                     }
-                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
-                        DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
-                            expandedMenu = false
-                            // navigate to settings/color picker
-                            onSettingsClicked()
-                        })
-                        DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
-                            expandedMenu = false
-                            onLogoutClicked()
-                        })
-                    }
+                .fillMaxWidth()
+                .padding(top = 64.dp, start = 16.dp, end = 16.dp)
+                .constrainAs(nameRow) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }) {
+                Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                    ExpenseTextView(
+                        text = "EXPENSE TRACKER",
+                        style = Typography.titleLarge,
+                        color = Color.Black
+                    )
                 }
-            }
+                // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    var expandedMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { expandedMenu = true }) {
+                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black)
+                    }
+                    DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
+                       DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
+                           expandedMenu = false
+                           // navigate to settings/color picker
+                           onSettingsClicked()
+                       })
+                       DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
+                           expandedMenu = false
+                           onLogoutClicked()
+                       })
+                   }
+               }
+           }
 
             val expenseTotal = expenses
             val expense = "" + Utils.formatCurrency(expenseTotal.filter { it.type != "Income" }.sumOf { it.amount })
@@ -340,18 +341,16 @@ fun TransactionList(
         }
         items(items = sorted,
             key = { item -> item.id ?: 0 }) { item ->
-            val icon = Utils.getItemIcon(item)
-            val amount = if (item.type == "Income") item.amount else item.amount * -1
+             val amount = if (item.type == "Income") item.amount else item.amount * -1
 
-            TransactionItem(
-                title = item.title,
-                amount = Utils.formatCurrency(amount),
-                icon = icon,
-                date = Utils.formatStringDateToMonthDayYear(item.date),
-                color = if (item.type == "Income") MaterialTheme.colorScheme.secondary else Red,
-                Modifier
-            )
-        }
+             TransactionItem(
+                 title = item.title,
+                 amount = Utils.formatCurrency(amount),
+                 date = Utils.formatStringDateToMonthDayYear(item.date),
+                 color = if (item.type == "Income") MaterialTheme.colorScheme.secondary else Red,
+                 Modifier
+             )
+         }
     }
 }
 
@@ -360,7 +359,6 @@ fun TransactionList(
 fun TransactionItem(
     title: String,
     amount: String,
-    icon: Int,
     date: String,
     color: Color,
     modifier: Modifier
@@ -376,7 +374,6 @@ fun TransactionItem(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.size(8.dp))
-            // show the icon (tinted by provided color)
             Column {
                 ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = transactionTitleColor)
                 Spacer(modifier = Modifier.size(6.dp))

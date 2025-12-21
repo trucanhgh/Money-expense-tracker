@@ -1,7 +1,7 @@
 package com.codewithfk.expensetracker.android.feature.category
 
 import android.net.Uri
-import com.codewithfk.expensetracker.android.feature.category.CategoryRow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +34,7 @@ import java.util.Calendar
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 
 @Composable
 fun CategoryListContent(
@@ -70,7 +71,7 @@ fun CategoryListContent(
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge)
+                    ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge, color = Color.Black)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Spacer(modifier = Modifier.size(8.dp))
                         // explicit + button for adding category
@@ -253,14 +254,16 @@ fun PreviewCategoryListContent() {
         CategoryEntity(id = 2, name = "Thu nhập")
     )
 
-    CategoryListContent(
-        getCategoryTotals = { _ -> flowOf(sampleTotals) },
-        categoriesFlow = flowOf(sampleEntities),
-        onOpenCategory = {},
-        onInsertCategory = {},
-        onUpdateCategory = { _, _ -> },
-        onDeleteCategory = {}
-    )
+    ExpenseTrackerAndroidTheme {
+        CategoryListContent(
+            getCategoryTotals = { _ -> flowOf(sampleTotals) },
+            categoriesFlow = flowOf(sampleEntities),
+            onOpenCategory = {},
+            onInsertCategory = {},
+            onUpdateCategory = { _, _ -> },
+            onDeleteCategory = {}
+        )
+    }
 }
 
 fun getCurrentMonthString(): String {

@@ -16,3 +16,11 @@ val LocalAppUi = staticCompositionLocalOf<AppUiColors> {
     // default safe fallback (light)
     AppUiColors(topBarTint = Color.Unspecified, topBarGradientColors = listOf(Color.Unspecified, Color.Unspecified), fabIconTint = Color.Unspecified, cardBackground = Color.Unspecified)
 }
+
+// Provide a default runtime AppUiColors instance (derived from the Day palette)
+val appUiColors: AppUiColors = AppUiColors(
+    topBarTint = ThemeColors.Day.primary,
+    topBarGradientColors = listOf(ThemeColors.Day.primary, ThemeColors.Day.secondary),
+    fabIconTint = ThemeColors.Day.onPrimary,
+    cardBackground = ThemeColors.Day.surface
+)

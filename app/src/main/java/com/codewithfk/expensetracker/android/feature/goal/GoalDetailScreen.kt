@@ -1,6 +1,7 @@
 package com.codewithfk.expensetracker.android.feature.goal
 
 import android.net.Uri
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,7 +49,7 @@ fun GoalDetailContent(
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge)
+                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge, color = Color.Black)
                 Spacer(modifier = Modifier.size(12.dp))
 
                 // Goal card
@@ -63,7 +64,7 @@ fun GoalDetailContent(
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             // remove "Chủ quỹ" label per requirement
-                            ExpenseTextView(text = goal?.name ?: "", style = MaterialTheme.typography.titleLarge)
+                            ExpenseTextView(text = goal?.name ?: "", style = MaterialTheme.typography.titleLarge, color = Color.Black)
                             Spacer(modifier = Modifier.size(8.dp))
 
                             val contributedText = Utils.formatCurrency(total)
@@ -102,11 +103,11 @@ fun GoalDetailContent(
                 Spacer(modifier = Modifier.size(16.dp))
 
                 // List of contributions
-                ExpenseTextView(text = "Giao dịch")
+                ExpenseTextView(text = "Giao dịch", color = Color.Black)
                 Spacer(modifier = Modifier.size(8.dp))
 
                 if (contributions.isEmpty()) {
-                    ExpenseTextView(text = "Không có giao dịch")
+                    ExpenseTextView(text = "Không có giao dịch", color = Color.Black)
                 } else {
                     // show newest transactions first
                     val sortedContributions = contributions.sortedByDescending { Utils.getMillisFromDate(it.date) }
@@ -114,7 +115,7 @@ fun GoalDetailContent(
                         Row(modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            ExpenseTextView(text = e.title)
+                            ExpenseTextView(text = e.title, color = Color.Black)
                             // Show positive amount for contributions (Expense), negative for withdrawals (Income)
                             val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
                             ExpenseTextView(text = amountDisplay)
@@ -143,7 +144,7 @@ fun GoalDetailContent(
             Column {
                 // Clarify semantics: Deposit into goal should be an Expense (reduces global balance),
                 // Withdraw from goal should be an Income (increases global balance).
-                ExpenseTextView(text = if (dialogType.value == "Income") "Rút khỏi mục tiêu" else "Nạp vào mục tiêu")
+                ExpenseTextView(text = if (dialogType.value == "Income") "Rút khỏi mục tiêu" else "Nạp vào mục tiêu", color = Color.Black)
                 Spacer(modifier = Modifier.size(8.dp))
                 OutlinedTextField(value = amountInput.value, onValueChange = { v ->
                     // allow digits and dots and commas

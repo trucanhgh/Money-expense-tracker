@@ -1,12 +1,12 @@
 package com.codewithfk.expensetracker.android.feature.category
 
 import android.net.Uri
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -20,9 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.codewithfk.expensetracker.android.feature.home.TransactionList
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -41,7 +41,7 @@ fun CategoryDetailContent(
     fun last12Months(): List<String> {
         val months = mutableListOf<String>()
         val cal = java.util.Calendar.getInstance()
-        for (i in 0..11) {
+        repeat(12) {
             val m = cal.get(java.util.Calendar.MONTH) + 1
             val y = cal.get(java.util.Calendar.YEAR)
             months.add(String.format(java.util.Locale.getDefault(), "%02d/%d", m, y))
@@ -55,7 +55,7 @@ fun CategoryDetailContent(
         Scaffold(topBar = {}) { padding ->
             Surface(modifier = Modifier.padding(padding)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    ExpenseTextView(text = "Danh mục không hợp lệ")
+                    ExpenseTextView(text = "Danh mục không hợp lệ", color = Color.Black)
                 }
             }
         }
@@ -65,18 +65,49 @@ fun CategoryDetailContent(
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ExpenseTextView(text = name)
+                ExpenseTextView(text = name, color = Color.Black)
                 Spacer(modifier = Modifier.size(8.dp))
 
-                // Filter button opens dialog to choose month or show all
-                Button(onClick = { showFilterDialog.value = true }) {
+                // Filter button opens inline filter panel
+                Button(onClick = { showFilterDialog.value = !showFilterDialog.value }) {
                     ExpenseTextView(text = "Lọc")
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
 
+                // Inline filter panel: when active, show a full-width Surface (white) with black text
+                if (showFilterDialog.value) {
+                    val months = last12Months()
+                    Surface(modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp), color = Color.White) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            ExpenseTextView(text = "Lọc giao dịch", fontWeight = androidx.compose.material3.MaterialTheme.typography.titleLarge.fontWeight, color = Color.Black)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Button(onClick = {
+                                selectedMonth.value = null
+                                showFilterDialog.value = false
+                            }) { ExpenseTextView(text = "Hiển thị tất cả") }
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Button(onClick = {
+                                selectedMonth.value = currentMonth
+                                showFilterDialog.value = false
+                            }) { ExpenseTextView(text = "Tháng này") }
+                            Spacer(modifier = Modifier.size(8.dp))
+                            // Quick pick recent months
+                            months.forEach { m ->
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Button(onClick = {
+                                    selectedMonth.value = m
+                                    showFilterDialog.value = false
+                                }) { ExpenseTextView(text = m, color = Color.Black) }
+                            }
+                        }
+                    }
+                }
+
                 if (expenses.isEmpty()) {
-                    ExpenseTextView(text = "Không có giao dịch")
+                    ExpenseTextView(text = "Không có giao dịch", color = Color.Black)
                 } else {
                     TransactionList(modifier = Modifier.fillMaxWidth(), list = expenses, title = "Giao dịch") { }
                 }
@@ -84,37 +115,10 @@ fun CategoryDetailContent(
         }
     }
 
-    if (showFilterDialog.value) {
-        val months = last12Months()
-        AlertDialog(onDismissRequest = { showFilterDialog.value = false }, confirmButton = {
-            Button(onClick = { showFilterDialog.value = false }) { ExpenseTextView(text = "Đóng") }
-        }, text = {
-            Column {
-                ExpenseTextView(text = "Lọc giao dịch", fontWeight = androidx.compose.material3.MaterialTheme.typography.titleLarge.fontWeight)
-                Spacer(modifier = Modifier.size(8.dp))
-                Button(onClick = {
-                    selectedMonth.value = null
-                    showFilterDialog.value = false
-                }) { ExpenseTextView(text = "Hiển thị tất cả") }
-                Spacer(modifier = Modifier.size(8.dp))
-                Button(onClick = {
-                    selectedMonth.value = currentMonth
-                    showFilterDialog.value = false
-                }) { ExpenseTextView(text = "Tháng này") }
-                Spacer(modifier = Modifier.size(8.dp))
-                // Quick pick recent months
-                months.forEach { m ->
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Button(onClick = {
-                        selectedMonth.value = m
-                        showFilterDialog.value = false
-                    }) { ExpenseTextView(text = m) }
-                }
-            }
-        })
-    }
+    // Removed the previous AlertDialog-based filter UI in favor of inline panel above
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun CategoryDetailScreen(
     navController: NavController,
@@ -134,5 +138,7 @@ fun PreviewCategoryDetailContent() {
         com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 1, title = "Ăn trưa", amount = 120000.0, date = "01/12/2025", type = "Expense"),
         com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Cà phê", amount = 30000.0, date = "02/12/2025", type = "Expense")
     )
-    CategoryDetailContent(name = "Ăn uống", getExpensesForCategory = { _, _ -> flowOf(sampleExpenses) })
+    ExpenseTrackerAndroidTheme {
+        CategoryDetailContent(name = "Ăn uống", getExpensesForCategory = { _, _ -> flowOf(sampleExpenses) })
+    }
 }

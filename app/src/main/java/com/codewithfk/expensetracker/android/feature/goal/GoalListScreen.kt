@@ -1,6 +1,7 @@
 package com.codewithfk.expensetracker.android.feature.goal
 
 import android.net.Uri
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 
 /**
  * Stateless UI for Goal List. Accepts data and callbacks. It may call getContributionsForGoal to collect flows.
@@ -75,7 +77,7 @@ fun GoalListContent(
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge)
+                    ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black)
                     Button(
                         onClick = { showAddDialog.value = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -109,19 +111,19 @@ fun GoalListContent(
                                 .padding(16.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                                     // Top-left: goal name
-                                    ExpenseTextView(text = g.name, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                                    ExpenseTextView(text = g.name, style = MaterialTheme.typography.titleLarge, maxLines = 1, color = Color.Black)
 
                                     // Top-right: overflow menu ("...")
                                     var menuExpanded by remember { mutableStateOf(false) }
                                     IconButton(onClick = { menuExpanded = true }) {
-                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
+                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = androidx.compose.ui.graphics.Color.Black)
                                     }
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                         DropdownMenuItem(text = { Text("Đổi tên") }, onClick = {
-                                            menuExpanded = false
-                                            editingGoalId.value = g.id
-                                            editGoalName.value = g.name
-                                            showEditDialog.value = true
+                                             menuExpanded = false
+                                             editingGoalId.value = g.id
+                                             editGoalName.value = g.name
+                                             showEditDialog.value = true
                                         })
                                         DropdownMenuItem(text = { Text("Xóa") }, onClick = {
                                             menuExpanded = false
@@ -269,12 +271,14 @@ fun PreviewGoalListContent() {
         GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0),
         GoalEntity(id = 2, name = "Xe máy", targetAmount = 20_000_000.0)
     )
-    GoalListContent(
-        goals = sample,
-        getContributionsForGoal = { _, _ -> flowOf(emptyList()) },
-        onCreateGoal = { _, _ -> },
-        onOpenGoal = {},
-        onUpdateGoal = {},
-        onDeleteGoal = {}
-    )
+    ExpenseTrackerAndroidTheme {
+        GoalListContent(
+            goals = sample,
+            getContributionsForGoal = { _, _ -> flowOf(emptyList()) },
+            onCreateGoal = { _, _ -> },
+            onOpenGoal = {},
+            onUpdateGoal = {},
+            onDeleteGoal = {}
+        )
+    }
 }
