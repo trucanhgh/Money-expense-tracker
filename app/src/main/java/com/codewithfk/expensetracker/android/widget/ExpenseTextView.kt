@@ -1,6 +1,7 @@
 package com.codewithfk.expensetracker.android.widget
 
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,25 +37,29 @@ fun ExpenseTextView(
     onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = LocalTextStyle.current
 ) {
+    // Resolve unspecified color to LocalContentColor (so inside Button, it uses onPrimary; otherwise fall back to theme onBackground)
+    val resolvedColor = when {
+        color != Color.Unspecified -> color
+        else -> LocalContentColor.current
+    }
 
     Text(
         text = text,
-        modifier,
-        color,
-        fontSize,
-        fontStyle,
-        fontWeight,
-        fontFamily,
-        letterSpacing,
-        textDecoration,
-        textAlign,
-        lineHeight,
-        overflow,
-        softWrap,
-        maxLines,
-        minLines,
-        onTextLayout,
-        style
-
+        modifier = modifier,
+        color = resolvedColor,
+        fontSize = fontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        onTextLayout = onTextLayout,
+        style = style
     )
 }

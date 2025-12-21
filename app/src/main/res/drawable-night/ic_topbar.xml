@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="414dp"
@@ -7,15 +8,15 @@
   <path
       android:pathData="M0,0H414V261.76C414,261.76 366,287 207,287C48,287 0,261.76 0,261.76V0Z">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="-10.5"
           android:startY="-17.07"
           android:endX="239.54"
           android:endY="393.95"
           android:type="linear">
-        <!-- Hardcode light theme color to ensure previews show requested color immediately -->
-        <item android:offset="0" android:color="#FF9BA4B5"/>
-        <item android:offset="1" android:color="#FF9BA4B5"/>
+        <!-- Hardcode dark theme color to ensure night mode shows requested color -->
+        <item android:offset="0" android:color="#FF394867"/>
+        <item android:offset="1" android:color="#FF394867"/>
       </gradient>
     </aapt:attr>
   </path>
@@ -24,7 +25,7 @@
       android:strokeAlpha="0.1"
       android:fillAlpha="0.1">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="130.5"
           android:startY="-12.59"
           android:endX="-97.16"
@@ -40,7 +41,7 @@
       android:strokeAlpha="0.1"
       android:fillAlpha="0.1">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="170.13"
           android:startY="-13.56"
           android:endX="33.74"
@@ -56,7 +57,7 @@
       android:strokeAlpha="0.1"
       android:fillAlpha="0.1">
     <aapt:attr name="android:fillColor">
-      <gradient 
+      <gradient
           android:startX="137.63"
           android:startY="-21.03"
           android:endX="228.9"
@@ -68,3 +69,4 @@
     </aapt:attr>
   </path>
 </vector>
+

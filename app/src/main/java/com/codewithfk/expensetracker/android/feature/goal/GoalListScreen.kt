@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,8 +46,6 @@ import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 
 /**
  * Stateless UI for Goal List. Accepts data and callbacks. It may call getContributionsForGoal to collect flows.
@@ -78,7 +76,10 @@ fun GoalListContent(
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge)
-                    Button(onClick = { showAddDialog.value = true }) {
+                    Button(
+                        onClick = { showAddDialog.value = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
                         ExpenseTextView(text = "+ Thêm")
                     }
                 }
@@ -98,7 +99,6 @@ fun GoalListContent(
                                 .padding(vertical = 8.dp)
                                 .height(160.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             // Use a column to place title at top, then the progress pill one row lower
                             Column(modifier = Modifier
@@ -162,18 +162,19 @@ fun GoalListContent(
     // Add dialog for new goal
     if (showAddDialog.value) {
         AlertDialog(onDismissRequest = { showAddDialog.value = false }, confirmButton = {
-            Button(onClick = {
-                val name = newName.value.trim()
-                val target = newTarget.value.replace(Regex("[.,\\s]"), "").toDoubleOrNull() ?: 0.0
-                if (name.isNotEmpty()) {
-                    onCreateGoal(name, target)
-                    newName.value = ""
-                    newTarget.value = ""
-                    showAddDialog.value = false
-                }
-            }) { ExpenseTextView(text = "Lưu") }
+            Button(
+                onClick = {
+                    val name = newName.value.trim()
+                    val target = newTarget.value.replace(Regex("[.,\\s]"), "").toDoubleOrNull() ?: 0.0
+                    if (name.isNotEmpty()) {
+                        onCreateGoal(name, target)
+                        newName.value = ""
+                        newTarget.value = ""
+                        showAddDialog.value = false
+                    }
+                }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { ExpenseTextView(text = "Lưu") }
         }, dismissButton = {
-            Button(onClick = { showAddDialog.value = false }) { ExpenseTextView(text = "Hủy") }
+            Button(onClick = { showAddDialog.value = false }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { ExpenseTextView(text = "Hủy") }
         }, text = {
             Column {
                 ExpenseTextView(text = "Tạo mục tiêu mới")
@@ -190,16 +191,17 @@ fun GoalListContent(
         AlertDialog(
             onDismissRequest = { showEditDialog.value = false },
             confirmButton = {
-                Button(onClick = {
-                    val id = editingGoalId.value!!
-                    val newNameTrimmed = editGoalName.value.trim()
-                    if (newNameTrimmed.isNotEmpty()) {
-                        onUpdateGoal(GoalEntity(id = id, name = newNameTrimmed, targetAmount = goals.find { it.id == id }?.targetAmount ?: 0.0))
-                        showEditDialog.value = false
-                    }
-                }) { ExpenseTextView(text = "Lưu") }
+                Button(
+                    onClick = {
+                        val id = editingGoalId.value!!
+                        val newNameTrimmed = editGoalName.value.trim()
+                        if (newNameTrimmed.isNotEmpty()) {
+                            onUpdateGoal(GoalEntity(id = id, name = newNameTrimmed, targetAmount = goals.find { it.id == id }?.targetAmount ?: 0.0))
+                            showEditDialog.value = false
+                        }
+                    }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { ExpenseTextView(text = "Lưu") }
             },
-            dismissButton = { Button(onClick = { showEditDialog.value = false }) { ExpenseTextView(text = "Hủy") } },
+            dismissButton = { Button(onClick = { showEditDialog.value = false }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { ExpenseTextView(text = "Hủy") } },
             text = {
                 Column {
                     ExpenseTextView(text = "Đổi tên mục tiêu")
@@ -217,14 +219,14 @@ fun GoalListContent(
         AlertDialog(
             onDismissRequest = { showDeleteDialog.value = false; deletingGoalId.value = null },
             confirmButton = {
-                Button(onClick = {
-                    entityToDelete?.let { onDeleteGoal(it) }
-                    showDeleteDialog.value = false
-                    deletingGoalId.value = null
-                }) { ExpenseTextView(text = "Xóa") }
+                Button(
+                    onClick = {
+                        entityToDelete?.let { onDeleteGoal(it) }
+                        showDeleteDialog.value = false
+                        deletingGoalId.value = null
+                    }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { ExpenseTextView(text = "Xóa") }
             },
             dismissButton = {
-                Button(onClick = { showDeleteDialog.value = false; deletingGoalId.value = null }) { ExpenseTextView(text = "Hủy") }
             },
             text = {
                 Column {

@@ -7,4 +7,18 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- User palette -->
+    <color name="palette_lightest">#F7F7F7</color>
+    <color name="palette_light">#EEEEEE</color>
+    <color name="palette_dark">#393E46</color>
+    <color name="palette_muted">#929AAB</color>
+
+    <!-- App semantic colors mapped to palette -->
+    <color name="colorPrimary">#393E46</color>
+    <color name="colorOnPrimary">#F7F7F7</color>
+    <color name="colorBackground">#F7F7F7</color>
+    <color name="colorSurface">#EEEEEE</color>
+    <color name="colorOnSurface">#393E46</color>
+    <color name="colorSecondary">#929AAB</color>
 </resources>

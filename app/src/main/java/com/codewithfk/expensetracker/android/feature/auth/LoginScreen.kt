@@ -1,5 +1,6 @@
 package com.codewithfk.expensetracker.android.feature.auth
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,11 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,9 +33,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+
+// Add a top-level LoginState sealed class (file-scope) to avoid illegal local sealed/object declarations
+sealed class LoginState {
+    object Idle : LoginState()
+    object Loading : LoginState()
+    object Success : LoginState()
+    data class Error(val message: String) : LoginState()
+}
 
 @Composable
 fun LoginContent(
@@ -39,6 +52,7 @@ fun LoginContent(
     password: String,
     remember: Boolean,
     showMessage: String?,
+    isLoading: Boolean = false,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onRememberChange: (Boolean) -> Unit,
@@ -46,11 +60,19 @@ fun LoginContent(
     onNavigateRegister: () -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    // respect system dark mode so we can show black text in light theme
+    val isDark = isSystemInDarkTheme()
+    // adaptive text color: white in dark mode, black in light mode
+    val adaptiveTextColor = if (isDark) Color.White else Color.Black
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(modifier = Modifier.size(24.dp))
-                ExpenseTextView(text = "Chào mừng", style = MaterialTheme.typography.headlineSmall)
+                ExpenseTextView(
+                    text = "Chào mừng",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (!isDark) Color.Black else MaterialTheme.colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.size(24.dp))
 
                 OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "Tên đăng nhập") })
@@ -73,11 +95,20 @@ fun LoginContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = remember, onCheckedChange = onRememberChange)
                     Spacer(modifier = Modifier.size(8.dp))
-                    ExpenseTextView(text = "Ghi nhớ đăng nhập")
+                    ExpenseTextView(text = "Ghi nhớ đăng nhập", color = adaptiveTextColor)
                 }
                 Spacer(modifier = Modifier.size(24.dp))
-                Button(onClick = onLoginClick, modifier = Modifier.fillMaxWidth()) {
-                    ExpenseTextView(text = "Đăng nhập")
+                Button(
+                    onClick = onLoginClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = androidx.compose.ui.unit.Dp.Hairline, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        ExpenseTextView(text = "Đăng nhập")
+                    }
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -88,7 +119,7 @@ fun LoginContent(
                 // Small 'Đăng ký' link at the bottom-right
                 Spacer(modifier = Modifier.size(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    ExpenseTextView(text = "Đăng ký", modifier = Modifier.clickable { onNavigateRegister() })
+                    ExpenseTextView(text = "Đăng ký", color = adaptiveTextColor, modifier = Modifier.clickable { onNavigateRegister() })
                 }
             }
         }
@@ -101,40 +132,57 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var remember by remember { mutableStateOf(false) }
-    var showMessage by remember { mutableStateOf<String?>(null) }
 
-    // If already remembered, navigate to home directly
+    // Use the file-level LoginState
+    var loginState by remember { mutableStateOf<LoginState>(LoginState.Idle) }
+
+    // If already remembered, navigate to home directly (kept as a structured step)
     LaunchedEffect(Unit) {
         val remembered = viewModel.getRememberedUsername()
         if (!remembered.isNullOrBlank()) {
             // also set current user for this session
             viewModel.saveCurrentUser(remembered)
+            // direct navigation as success case
             navController.navigate("/home") {
                 popUpTo("/login") { inclusive = true }
             }
         }
     }
 
+    // Effect: react to Success state once it appears
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) {
+            navController.navigate("/home") {
+                popUpTo("/login") { inclusive = true }
+            }
+        }
+    }
+
+    // Provide the LoginContent and wire actions into the state machine
     LoginContent(
         username = username,
         password = password,
         remember = remember,
-        showMessage = showMessage,
+        showMessage = (loginState as? LoginState.Error)?.message,
+        isLoading = loginState is LoginState.Loading,
         onUsernameChange = { username = it },
         onPasswordChange = { password = it },
         onRememberChange = { remember = it },
         onLoginClick = {
+            // structured login flow: set Loading, attempt login, then set Success/Error
             scope.launch {
-                val ok = viewModel.loginUser(username.trim(), password)
-                if (ok) {
-                    // save session and optionally remember
-                    viewModel.saveCurrentUser(username.trim())
-                    if (remember) viewModel.saveRememberUsername(username.trim())
-                    navController.navigate("/home") {
-                        popUpTo("/login") { inclusive = true }
+                loginState = LoginState.Loading
+                try {
+                    val ok = viewModel.loginUser(username.trim(), password)
+                    if (ok) {
+                        viewModel.saveCurrentUser(username.trim())
+                        if (remember) viewModel.saveRememberUsername(username.trim())
+                        loginState = LoginState.Success
+                    } else {
+                        loginState = LoginState.Error("Tên đăng nhập hoặc mật khẩu không đúng")
                     }
-                } else {
-                    showMessage = "Tên đăng nhập hoặc mật khẩu không đúng"
+                } catch (t: Throwable) {
+                    loginState = LoginState.Error(t.message ?: "Lỗi khi kết nối")
                 }
             }
         },
@@ -142,18 +190,38 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
     )
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Light Preview")
 @Composable
-fun PreviewLoginContent() {
-    LoginContent(
-        username = "",
-        password = "",
-        remember = false,
-        showMessage = null,
-        onUsernameChange = {},
-        onPasswordChange = {},
-        onRememberChange = {},
-        onLoginClick = {},
-        onNavigateRegister = {}
-    )
+fun PreviewLoginContent_Light() {
+    ExpenseTrackerAndroidTheme(darkTheme = false, dynamicColor = false) {
+        LoginContent(
+            username = "",
+            password = "",
+            remember = false,
+            showMessage = null,
+            onUsernameChange = {},
+            onPasswordChange = {},
+            onRememberChange = {},
+            onLoginClick = {},
+            onNavigateRegister = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, uiMode = 32, name = "Dark Preview")
+@Composable
+fun PreviewLoginContent_Dark() {
+    ExpenseTrackerAndroidTheme(darkTheme = true, dynamicColor = false) {
+        LoginContent(
+            username = "",
+            password = "",
+            remember = false,
+            showMessage = null,
+            onUsernameChange = {},
+            onPasswordChange = {},
+            onRememberChange = {},
+            onLoginClick = {},
+            onNavigateRegister = {}
+        )
+    }
 }

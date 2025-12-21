@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light theme colors for ic_topbar -->
+    <color name="ic_topbar_start">#FF9BA4B5</color>
+    <color name="ic_topbar_end">#FF9BA4B5</color>
+
+    <!-- Overlay gradients (kept same across themes) -->
+    <color name="ic_topbar_overlay_start">#00FFFFFF</color>
+    <color name="ic_topbar_overlay_end">#B2FFFFFF</color>
+</resources>

@@ -55,9 +55,11 @@ fun CategoryRow(
             val totalText = String.format(Locale.getDefault(), "%,.0f", summary.total)
             // show total with color depending on sign
             val color = if (summary.total < 0) {
-                androidx.compose.ui.graphics.Color(0xFFB00020) // red-ish
+                // negative: use app Red
+                com.codewithfk.expensetracker.android.ui.theme.Red
             } else {
-                androidx.compose.ui.graphics.Color(0xFF2E7D32) // green-ish
+                // positive: use theme secondary (mapped to the user's muted palette)
+                MaterialTheme.colorScheme.secondary
             }
             Text(text = totalText, color = color, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(end = 8.dp))
 

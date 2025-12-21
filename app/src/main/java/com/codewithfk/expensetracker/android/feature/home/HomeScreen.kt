@@ -1,9 +1,9 @@
 package com.codewithfk.expensetracker.android.feature.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,9 +46,11 @@ import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.base.HomeNavigationEvent
 import com.codewithfk.expensetracker.android.base.NavigationEvent
-import com.codewithfk.expensetracker.android.ui.theme.Green
 import com.codewithfk.expensetracker.android.ui.theme.Red
+import com.codewithfk.expensetracker.android.ui.theme.ThemeViewModel
 import com.codewithfk.expensetracker.android.ui.theme.Typography
+import com.codewithfk.expensetracker.android.ui.theme.LocalAppUi
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.utils.Utils
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
@@ -60,39 +63,64 @@ fun HomeContent(
     onAddExpenseClicked: () -> Unit,
     onAddIncomeClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
-    onLogoutClicked: () -> Unit
+    onLogoutClicked: () -> Unit,
+    // current theme flag and toggle callback (defaults keep Preview working)
+    isDark: Boolean = false,
+    onToggleTheme: () -> Unit = {}
 ) {
+    val appUi = LocalAppUi.current
+
+    // Resolve topBar colors: prefer values from LocalAppUi but fall back to the requested hexes
+    val fallbackLight = listOf(Color(0xFF9BA4B5), Color(0xFF9BA4B5))
+    val fallbackDark = listOf(Color(0xFF394867), Color(0xFF394867))
+    val topBarGradientColors = appUi.topBarGradientColors.takeIf { list ->
+        list.isNotEmpty() && list.none { it == Color.Unspecified }
+    } ?: if (isDark) fallbackDark else fallbackLight
+
+    val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
+        if (isDark) Color(0xFF394867) else Color(0xFF9BA4B5)
+    } else appUi.topBarTint
+
     Surface(modifier = Modifier.fillMaxSize()) {
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
             val (nameRow, list, card, topBar, add) = createRefs()
-            Image(painter = painterResource(id = R.drawable.ic_topbar), contentDescription = null,
-                modifier = Modifier.constrainAs(topBar) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                })
+            // Topbar drawn as a gradient Box so it can switch per-theme
             Box(modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 64.dp, start = 16.dp, end = 16.dp)
-                .constrainAs(nameRow) {
+                .height(260.dp)
+                .constrainAs(topBar) {
                     top.linkTo(parent.top)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                }) {
-                Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                    ExpenseTextView(
-                        text = "Expense Tracker",
-                        style = Typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
                 }
-                // top-right menu (Cài đặt / Đăng xuất)
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    var expandedMenu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                    }
-                    DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
+                .background(brush = Brush.linearGradient(colors = topBarGradientColors)))
+
+            Box(modifier = Modifier
+                 .fillMaxWidth()
+                 .padding(top = 64.dp, start = 16.dp, end = 16.dp)
+                 .constrainAs(nameRow) {
+                     top.linkTo(parent.top)
+                     start.linkTo(parent.start)
+                     end.linkTo(parent.end)
+                 }) {
+                 Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                     ExpenseTextView(
+                         text = "Expense Tracker",
+                         style = Typography.titleLarge,
+                     )
+                 }
+                 // top-right menu (Cài đặt / Đăng xuất)
+                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                     var expandedMenu by remember { mutableStateOf(false) }
+                     IconButton(onClick = { expandedMenu = true }) {
+                         Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint)
+                     }
+                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
+                        DropdownMenuItem(text = { ExpenseTextView(text = if (isDark) "Chuyển sang sáng" else "Chuyển sang tối") }, onClick = {
+                            // toggle theme
+                            expandedMenu = false
+                            onToggleTheme()
+                        })
                         DropdownMenuItem(text = { ExpenseTextView(text = "Cài đặt") }, onClick = {
                             expandedMenu = false
                             onSettingsClicked()
@@ -115,7 +143,8 @@ fun HomeContent(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 },
-                balance = balance, income = income, expense = expense
+                balance = balance, income = income, expense = expense,
+                cardBg = appUi.cardBackground
             )
             TransactionList(
                 modifier = Modifier
@@ -143,7 +172,7 @@ fun HomeContent(
                     onAddExpenseClicked()
                 }, {
                     onAddIncomeClicked()
-                })
+                }, fabTint = appUi.fabIconTint)
             }
         }
     }
@@ -153,7 +182,8 @@ fun HomeContent(
 fun MultiFloatingActionButton(
     modifier: Modifier,
     onAddExpenseClicked: () -> Unit,
-    onAddIncomeClicked: () -> Unit
+    onAddIncomeClicked: () -> Unit,
+    fabTint: Color = Color.Unspecified
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -177,7 +207,7 @@ fun MultiFloatingActionButton(
                         Icon(
                             painter = painterResource(R.drawable.ic_income),
                             contentDescription = "Thêm thu nhập",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = fabTint
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -193,7 +223,7 @@ fun MultiFloatingActionButton(
                         Icon(
                             painter = painterResource(R.drawable.ic_expense),
                             contentDescription = "Thêm chi tiêu",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = fabTint
                         )
                     }
                 }
@@ -210,9 +240,11 @@ fun MultiFloatingActionButton(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Image(
+                // Use Icon so we can tint it to onPrimary to match theme
+                Icon(
                     painter = painterResource(R.drawable.ic_add),
                     contentDescription = "nút thêm",
+                    tint = fabTint,
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -223,7 +255,8 @@ fun MultiFloatingActionButton(
 @Composable
 fun CardItem(
     modifier: Modifier,
-    balance: String, income: String, expense: String
+    balance: String, income: String, expense: String,
+    cardBg: Color = MaterialTheme.colorScheme.primary
 ) {
     Column(
         modifier = modifier
@@ -231,7 +264,7 @@ fun CardItem(
             .fillMaxWidth()
             .height(200.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primary)
+            .background(cardBg)
             .padding(16.dp)
     ) {
         Box(
@@ -287,17 +320,24 @@ fun TransactionList(
     // Always display newest transactions at top. Dates are stored as dd/MM/yyyy strings; convert to millis to sort.
     val sorted = list.sortedByDescending { Utils.getMillisFromDate(it.date) }
 
+    // Resolve title color depending on theme: black in light, keep onBackground in dark
+    val isDarkTheme = isSystemInDarkTheme()
+    // Use pure white in dark mode for high contrast as requested
+    val sectionTitleColor = if (isDarkTheme) Color.White else Color.Black
+
     LazyColumn(modifier = modifier.padding(horizontal = 16.dp)) {
         item {
             Column {
-                Box(modifier = modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
                     ExpenseTextView(
                         text = title,
                         style = Typography.titleLarge,
+                        color = sectionTitleColor,
                     )
                     if (title == "Giao dịch gần đây") {
                         ExpenseTextView(
                             text = "Xem tất cả",
+                            color = MaterialTheme.colorScheme.primary,
                             style = Typography.bodyMedium,
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
@@ -320,13 +360,14 @@ fun TransactionList(
                 amount = Utils.formatCurrency(amount),
                 icon = icon,
                 date = Utils.formatStringDateToMonthDayYear(item.date),
-                color = if (item.type == "Income") Green else Red,
+                color = if (item.type == "Income") MaterialTheme.colorScheme.secondary else Red,
                 Modifier
             )
         }
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun TransactionItem(
     title: String,
@@ -337,6 +378,10 @@ fun TransactionItem(
     modifier: Modifier
 ) {
 
+    val isDarkTheme = isSystemInDarkTheme()
+    // Use pure white in dark mode for transaction titles
+    val transactionTitleColor = if (isDarkTheme) Color.White else Color.Black
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -344,14 +389,15 @@ fun TransactionItem(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.size(8.dp))
-            Image(
+            // show the icon (tinted by provided color)
+            Icon(
                 painter = painterResource(id = icon),
                 contentDescription = null,
-                modifier = Modifier.size(40.dp)
+                tint = color,
+                modifier = Modifier.size(36.dp)
             )
-            Spacer(modifier = Modifier.size(8.dp))
             Column {
-                ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = transactionTitleColor)
                 Spacer(modifier = Modifier.size(6.dp))
                 ExpenseTextView(text = date, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
@@ -371,9 +417,10 @@ fun CardRowItem(modifier: Modifier, title: String, amount: String, imaget: Int) 
     Column(modifier = modifier) {
         Row {
 
-            Image(
+            Icon(
                 painter = painterResource(id = imaget),
                 contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.size(8.dp))
             ExpenseTextView(text = title, style = Typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
@@ -408,6 +455,11 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
     val state = viewModel.expenses.collectAsState(initial = emptyList())
 
+    // read theme state and pass toggle callback to the content
+    val themeViewModel: ThemeViewModel = hiltViewModel()
+    // collectAsState requires an initial value — use false (light) as default while preference loads
+    val isDark by themeViewModel.isDarkTheme.collectAsState(initial = false)
+
     HomeContent(
         expenses = state.value,
         onSeeAllClicked = { viewModel.onEvent(HomeUiEvent.OnSeeAllClicked) },
@@ -420,6 +472,9 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 popUpTo("/home") { inclusive = true }
             }
         }
+        ,
+        isDark = isDark,
+        onToggleTheme = { themeViewModel.toggleTheme() }
     )
 }
 
@@ -430,12 +485,37 @@ fun PreviewHomeContent() {
         ExpenseEntity(id = 1, title = "Netflix", amount = 120000.0, date = "01/12/2025", type = "Expense"),
         ExpenseEntity(id = 2, title = "Lương", amount = 5000000.0, date = "01/12/2025", type = "Income")
     )
-    HomeContent(
-        expenses = sample,
-        onSeeAllClicked = {},
-        onAddExpenseClicked = {},
-        onAddIncomeClicked = {},
-        onSettingsClicked = {},
-        onLogoutClicked = {}
+    // Light preview
+    ExpenseTrackerAndroidTheme(darkTheme = false) {
+        HomeContent(
+            expenses = sample,
+            onSeeAllClicked = {},
+            onAddExpenseClicked = {},
+            onAddIncomeClicked = {},
+            onSettingsClicked = {},
+            onLogoutClicked = {},
+            isDark = false
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewHomeContentDark() {
+    val sample = listOf(
+        ExpenseEntity(id = 1, title = "Netflix", amount = 120000.0, date = "01/12/2025", type = "Expense"),
+        ExpenseEntity(id = 2, title = "Lương", amount = 5000000.0, date = "01/12/2025", type = "Income")
     )
+    // Dark preview
+    ExpenseTrackerAndroidTheme(darkTheme = true) {
+        HomeContent(
+            expenses = sample,
+            onSeeAllClicked = {},
+            onAddExpenseClicked = {},
+            onAddIncomeClicked = {},
+            onSettingsClicked = {},
+            onLogoutClicked = {},
+            isDark = true
+        )
+    }
 }

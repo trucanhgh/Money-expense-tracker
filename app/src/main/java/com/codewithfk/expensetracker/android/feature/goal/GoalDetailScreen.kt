@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -17,6 +16,7 @@ import androidx.navigation.NavController
 import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -57,7 +57,8 @@ fun GoalDetailContent(
                         .fillMaxWidth()
                         .height(160.dp)
                         .clip(RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF2F8))
+                    // Use theme surface so UI follows the app palette instead of a hard-coded color
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -170,9 +171,10 @@ fun GoalDetailContent(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun GoalDetailScreen(
-    navController: NavController,
+    _navController: NavController,
     encodedName: String?,
     viewModel: GoalViewModel = hiltViewModel()
 ) {
@@ -206,5 +208,7 @@ fun PreviewGoalDetailContent() {
         com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Rút tiền", amount = 50000.0, date = "02/12/2025", type = "Income")
     )
     val sampleGoal = GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0)
-    GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }
+    ExpenseTrackerAndroidTheme {
+        GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }
+    }
 }
