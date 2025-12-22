@@ -71,10 +71,6 @@ fun HomeContent(
         list.isNotEmpty() && list.none { it == Color.Unspecified }
     } ?: fallbackLight
 
-    val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
-        Color(0xFF9BA4B5)
-    } else appUi.topBarTint
-
     Surface(modifier = Modifier.fillMaxSize()) {
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
             val (nameRow, list, card, topBar, add) = createRefs()
@@ -101,14 +97,14 @@ fun HomeContent(
                     ExpenseTextView(
                         text = "EXPENSE TRACKER",
                         style = Typography.titleLarge,
-                        color = Color.Black
+                        color = Color.White
                     )
                 }
                 // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
                 Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                     var expandedMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black)
+                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = Color.Black)
                     }
                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
                        DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
@@ -135,7 +131,8 @@ fun HomeContent(
                     end.linkTo(parent.end)
                 },
                 balance = balance, income = income, expense = expense,
-                cardBg = appUi.cardBackground
+                // Force the card background to black so the balance card is always black
+                cardBg = Color.Black
             )
             TransactionList(
                 modifier = Modifier
@@ -247,7 +244,8 @@ fun MultiFloatingActionButton(
 fun CardItem(
     modifier: Modifier,
     balance: String, income: String, expense: String,
-    cardBg: Color = MaterialTheme.colorScheme.primary
+    // Force the card background for the balance card to black as requested
+    cardBg: Color = Color.Black
 ) {
     Column(
         modifier = modifier
@@ -267,11 +265,12 @@ fun CardItem(
                 ExpenseTextView(
                     text = "Tổng số dư",
                     style = Typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    // Use white text over the black card
+                    color = Color.White
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 ExpenseTextView(
-                    text = balance, style = Typography.headlineLarge, color = MaterialTheme.colorScheme.onPrimary,
+                    text = balance, style = Typography.headlineLarge, color = Color.White,
                 )
             }
         }
@@ -398,13 +397,14 @@ fun CardRowItem(modifier: Modifier, title: String, amount: String, imaget: Int) 
             Icon(
                 painter = painterResource(id = imaget),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary
+                // Ensure icons are visible on the black card
+                tint = Color.White
             )
             Spacer(modifier = Modifier.size(8.dp))
-            ExpenseTextView(text = title, style = Typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
+            ExpenseTextView(text = title, style = Typography.bodyLarge, color = Color.White)
         }
         Spacer(modifier = Modifier.size(4.dp))
-        ExpenseTextView(text = amount, style = Typography.titleLarge, color = MaterialTheme.colorScheme.onPrimary)
+        ExpenseTextView(text = amount, style = Typography.titleLarge, color = Color.White)
     }
 }
 

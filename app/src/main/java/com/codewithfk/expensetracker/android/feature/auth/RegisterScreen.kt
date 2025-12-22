@@ -95,7 +95,7 @@ fun RegisterContent(
 
                 Spacer(modifier = Modifier.size(12.dp))
 
-                errorMessage?.let { ExpenseTextView(text = it) }
+                errorMessage?.let { ExpenseTextView(text = it, color = Color.Black) }
                 successMessage?.let { ExpenseTextView(text = it) }
             }
         }
