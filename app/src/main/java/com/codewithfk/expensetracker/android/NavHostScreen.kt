@@ -192,11 +192,13 @@ fun NavigationBottomBar(
                     }
                 },
                 alwaysShowLabel = false,
+                // Remove the active indicator (background/rounded highlight) by making it transparent
                 colors = NavigationBarItemDefaults.colors(
                     selectedTextColor = MaterialTheme.colorScheme.primary,
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     unselectedTextColor = Color.Gray,
-                    unselectedIconColor = Color.Gray
+                    unselectedIconColor = Color.Gray,
+                    indicatorColor = Color.Transparent
                 )
             )
         }
