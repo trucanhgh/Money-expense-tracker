@@ -66,7 +66,8 @@ fun HomeContent(
     val appUi = LocalAppUi.current
 
     // Resolve topBar colors: prefer values from LocalAppUi but fall back to the requested hexes
-    val fallbackLight = listOf(Color(0xFF9BA4B5), Color(0xFF9BA4B5))
+    // Use the requested color B6BBC4 as the fallback top bar color
+    val fallbackLight = listOf(Color(0xFFB6BBC4), Color(0xFFB6BBC4))
     val topBarGradientColors = appUi.topBarGradientColors.takeIf { list ->
         list.isNotEmpty() && list.none { it == Color.Unspecified }
     } ?: fallbackLight

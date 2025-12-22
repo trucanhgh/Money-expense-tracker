@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +51,11 @@ fun GoalDetailContent(
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge, color = Color.Black)
+                // Header label (larger & bold) and the actual name (smaller, not bold)
+                ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
+                Spacer(modifier = Modifier.size(6.dp))
+                // Actual goal name: smaller and not bold (single-line with ellipsis for long names)
+                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.size(12.dp))
 
                 // Goal card
@@ -59,18 +65,21 @@ fun GoalDetailContent(
                         .height(160.dp)
                         .clip(RoundedCornerShape(16.dp)),
                     // Use theme surface so UI follows the app palette instead of a hard-coded color
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    // colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    // Set card background to requested light grey
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEEEEEE))
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             // remove "Chủ quỹ" label per requirement
-                            ExpenseTextView(text = goal?.name ?: "", style = MaterialTheme.typography.titleLarge, color = Color.Black)
+                            // Title already shown at the top of the screen; remove duplicate here
                             Spacer(modifier = Modifier.size(8.dp))
 
                             val contributedText = Utils.formatCurrency(total)
                             val targetText = Utils.formatCurrency(goal?.targetAmount ?: 0.0)
 
-                            ExpenseTextView(text = "$contributedText / $targetText")
+                            // Make the amount text explicitly black so it contrasts with the light grey card background
+                            ExpenseTextView(text = "$contributedText / $targetText", color = Color.Black)
                         }
                     }
                 }
