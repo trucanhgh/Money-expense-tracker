@@ -38,8 +38,9 @@ sealed class ThemeColors(
     )
 
     data object Day : ThemeColors(
-        background = PaletteLightest,
-        surface = PaletteLight,
+        // Change the outermost app background and surface to white
+        background = Color.White,
+        surface = Color.White,
         // primary in light mode: dark to contrast with light background
         primary = PaletteDark,
         secondary = PaletteMuted,

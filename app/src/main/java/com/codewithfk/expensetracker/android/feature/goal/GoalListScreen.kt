@@ -101,6 +101,8 @@ fun GoalListContent(
                                 .padding(vertical = 8.dp)
                                 .height(160.dp),
                             shape = RoundedCornerShape(16.dp),
+                            // Set the goal card background to the requested light grey
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEEEEEE)),
                         ) {
                             // Use a column to place title at top, then the progress pill one row lower
                             Column(modifier = Modifier
