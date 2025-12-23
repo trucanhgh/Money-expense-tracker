@@ -55,4 +55,10 @@ interface ExpenseDao {
         "SELECT * FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%') AND (:month IS NULL OR substr(date,4) = :month)"
     )
     fun getExpensesByCategory(userId: String, categoryName: String, month: String? = null): Flow<List<ExpenseEntity>>
+
+    // Compute current balance for a category/goal: sum(Expense) - sum(Income)
+    @Query(
+        "SELECT IFNULL(SUM(CASE WHEN type = 'Expense' THEN amount ELSE -amount END), 0) FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%')"
+    )
+    suspend fun getBalanceForCategory(userId: String, categoryName: String): Double
 }

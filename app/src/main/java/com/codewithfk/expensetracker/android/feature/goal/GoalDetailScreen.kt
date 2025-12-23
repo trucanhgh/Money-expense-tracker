@@ -28,6 +28,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -225,25 +229,38 @@ fun GoalDetailScreen(
     val goals by viewModel.goals.collectAsState(initial = emptyList())
     val goal = goals.find { it.name.equals(name, ignoreCase = true) }
 
-    GoalDetailContent(
-        name = name,
-        goal = goal,
-        getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
-        onInsertContribution = { goalName, amt, dateStr, type ->
-            // Ensure deposit => Expense and withdrawal => Income.
-            // If UI mistakenly passes a dialog type opposite to semantics, normalize here.
-            val normalizedType = when (type) {
-                "Expense", "expense" -> "Expense"
-                "Income", "income" -> "Income"
-                else -> "Expense"
-            }
-            viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
-        },
-        onOpenTransactions = { goalName ->
-            val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
-            _navController.navigate("/all_transactions/goal/$encoded")
+    // Provide a top-level Scaffold with a SnackbarHost so ViewModel messages can be shown from here.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Collect UI messages from ViewModel and show them as snackbars
+    LaunchedEffect(viewModel) {
+        viewModel.uiMessage.collect { msg ->
+            // showSnackbar is suspend; ensure sequential display
+            snackbarHostState.showSnackbar(msg)
         }
-    )
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+        // Forward content to the stateless GoalDetailContent. Keep layout padding.
+        GoalDetailContent(
+            name = name,
+            goal = goal,
+            getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
+            onInsertContribution = { goalName, amt, dateStr, type ->
+                val normalizedType = when (type) {
+                    "Expense", "expense" -> "Expense"
+                    "Income", "income" -> "Income"
+                    else -> "Expense"
+                }
+                viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+            },
+            onOpenTransactions = { goalName ->
+                val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
+                _navController.navigate("/all_transactions/goal/$encoded")
+            }
+        )
+    }
 }
 
 @Preview(showBackground = true)
