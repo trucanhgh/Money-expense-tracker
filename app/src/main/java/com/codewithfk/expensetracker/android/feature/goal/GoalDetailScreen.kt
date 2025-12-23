@@ -29,7 +29,8 @@ fun GoalDetailContent(
     name: String,
     goal: GoalEntity?,
     getContributionsForGoal: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
-    onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit
+    onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit,
+    onOpenTransactions: (String) -> Unit
 ) {
     // contributions flow collected inside content per requirement
     val contributionsFlow = getContributionsForGoal(name, null)
@@ -112,7 +113,12 @@ fun GoalDetailContent(
                 Spacer(modifier = Modifier.size(16.dp))
 
                 // List of contributions
-                ExpenseTextView(text = "Giao dịch", color = Color.Black)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    ExpenseTextView(text = "Giao dịch", color = Color.Black)
+                    Button(onClick = { onOpenTransactions(name) }) {
+                        ExpenseTextView(text = "Xem chi tiết")
+                    }
+                }
                 Spacer(modifier = Modifier.size(8.dp))
 
                 if (contributions.isEmpty()) {
@@ -206,6 +212,10 @@ fun GoalDetailScreen(
                 else -> "Expense"
             }
             viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+        },
+        onOpenTransactions = { goalName ->
+            val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
+            _navController.navigate("/all_transactions/goal/$encoded")
         }
     )
 }
@@ -219,6 +229,12 @@ fun PreviewGoalDetailContent() {
     )
     val sampleGoal = GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0)
     ExpenseTrackerAndroidTheme {
-        GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }
+        GoalDetailContent(
+            name = "Du lịch",
+            goal = sampleGoal,
+            getContributionsForGoal = { _, _ -> flowOf(sampleContributions) },
+            onInsertContribution = { _, _, _, _ -> },
+            onOpenTransactions = {}
+        )
     }
 }
