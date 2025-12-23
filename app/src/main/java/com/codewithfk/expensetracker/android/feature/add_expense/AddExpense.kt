@@ -100,9 +100,8 @@ fun AddExpenseContent(
         list.isNotEmpty() && list.none { it == Color.Unspecified }
     } ?: fallbackLight
 
-    val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
-        Color(0xFF9BA4B5)
-    } else appUi.topBarTint
+    // Force title/back icon tint to black on this screen as requested
+    val topBarTint = Color.Black
 
     Surface(modifier = Modifier.fillMaxSize()) {
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
