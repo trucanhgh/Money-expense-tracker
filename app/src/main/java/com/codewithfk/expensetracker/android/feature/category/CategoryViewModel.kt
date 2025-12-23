@@ -37,7 +37,19 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             val trimmed = category.name.trim()
             if (trimmed.isNotEmpty()) {
-                categoryDao.insertCategory(CategoryEntity(name = trimmed, ownerId = userId))
+                // persist all fields including auto-transaction config
+                val toInsert = CategoryEntity(
+                    name = trimmed,
+                    ownerId = userId,
+                    isAutoTransactionEnabled = category.isAutoTransactionEnabled,
+                    autoAmount = category.autoAmount,
+                    autoType = category.autoType,
+                    autoRepeatType = category.autoRepeatType,
+                    autoDayOfWeek = category.autoDayOfWeek,
+                    autoDayOfMonth = category.autoDayOfMonth,
+                    lastAutoExecutedDate = category.lastAutoExecutedDate
+                )
+                categoryDao.insertCategory(toInsert)
             }
         }
     }
@@ -86,9 +98,65 @@ class CategoryViewModel @Inject constructor(
                         expenseDao.reassignExpensesToCategory(userId, existing.name, newNameTrimmed)
                     }
                 }
-                categoryDao.updateCategory(CategoryEntity(id = category.id, name = newNameTrimmed, ownerId = userId))
+                // Persist updated category including auto fields
+                val toUpdate = CategoryEntity(
+                    id = category.id,
+                    name = newNameTrimmed,
+                    ownerId = userId,
+                    isAutoTransactionEnabled = category.isAutoTransactionEnabled,
+                    autoAmount = category.autoAmount,
+                    autoType = category.autoType,
+                    autoRepeatType = category.autoRepeatType,
+                    autoDayOfWeek = category.autoDayOfWeek,
+                    autoDayOfMonth = category.autoDayOfMonth,
+                    lastAutoExecutedDate = category.lastAutoExecutedDate
+                )
+                categoryDao.updateCategory(toUpdate)
             } catch (t: Throwable) {
                 // ignore or log
+            }
+        }
+    }
+
+    // Toggle auto transaction enabled/disabled for a specific category id
+    fun toggleAutoTransaction(categoryId: Int, enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                val existing = categoryDao.getCategoryById(userId, categoryId)
+                if (existing != null) {
+                    val updated = existing.copy(isAutoTransactionEnabled = enabled)
+                    categoryDao.updateCategory(updated)
+                }
+            } catch (_: Throwable) {
+                // ignore
+            }
+        }
+    }
+
+    // Update auto configuration for a category (amount, type, repeat, day)
+    fun updateAutoConfig(
+        categoryId: Int,
+        amount: Double,
+        type: String,
+        repeatType: String,
+        dayOfWeek: Int?,
+        dayOfMonth: Int?
+    ) {
+        viewModelScope.launch {
+            try {
+                val existing = categoryDao.getCategoryById(userId, categoryId)
+                if (existing != null) {
+                    val updated = existing.copy(
+                        autoAmount = amount,
+                        autoType = type,
+                        autoRepeatType = repeatType,
+                        autoDayOfWeek = dayOfWeek,
+                        autoDayOfMonth = dayOfMonth
+                    )
+                    categoryDao.updateCategory(updated)
+                }
+            } catch (_: Throwable) {
+                // ignore
             }
         }
     }

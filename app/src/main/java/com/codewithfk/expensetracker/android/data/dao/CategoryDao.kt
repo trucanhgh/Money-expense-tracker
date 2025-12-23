@@ -21,6 +21,10 @@ interface CategoryDao {
     @Query("SELECT * FROM category_table WHERE ownerId = :userId AND id = :id LIMIT 1")
     suspend fun getCategoryById(userId: String, id: Int): CategoryEntity?
 
+    // New: fetch all auto-enabled categories for processing (suspend, one-shot)
+    @Query("SELECT * FROM category_table WHERE ownerId = :userId AND isAutoTransactionEnabled = 1")
+    suspend fun getAutoEnabledCategories(userId: String): List<CategoryEntity>
+
     @Insert
     suspend fun insertCategory(categoryEntity: CategoryEntity)
 

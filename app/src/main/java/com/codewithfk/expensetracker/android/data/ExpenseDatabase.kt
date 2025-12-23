@@ -16,7 +16,7 @@ import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Singleton
 
-@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class], version = 6, exportSchema = false)
+@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class], version = 7, exportSchema = false)
 @Singleton
 abstract class ExpenseDatabase : RoomDatabase() {
 
@@ -40,11 +40,27 @@ abstract class ExpenseDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addMigrations(MIGRATION_5_6)
+                    .addMigrations(MIGRATION_6_7)
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add new columns to category_table for auto transactions
+        db.execSQL("ALTER TABLE category_table ADD COLUMN isAutoTransactionEnabled INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN autoAmount REAL NOT NULL DEFAULT 0.0")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN autoType TEXT NOT NULL DEFAULT 'Expense'")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN autoRepeatType TEXT NOT NULL DEFAULT 'WEEKLY'")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN autoDayOfWeek INTEGER")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN autoDayOfMonth INTEGER")
+        db.execSQL("ALTER TABLE category_table ADD COLUMN lastAutoExecutedDate TEXT")
+        // Add note column to expense_table to store optional notes (default empty)
+        db.execSQL("ALTER TABLE expense_table ADD COLUMN note TEXT NOT NULL DEFAULT ''")
     }
 }
 

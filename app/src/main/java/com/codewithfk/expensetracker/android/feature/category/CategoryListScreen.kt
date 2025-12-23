@@ -41,8 +41,8 @@ fun CategoryListContent(
     getCategoryTotals: (month: String?) -> Flow<List<CategorySummary>>,
     categoriesFlow: Flow<List<CategoryEntity>>,
     onOpenCategory: (name: String) -> Unit,
-    onInsertCategory: (name: String) -> Unit,
-    onUpdateCategory: (id: Int, newName: String) -> Unit,
+    onInsertCategory: (CategoryEntity) -> Unit,
+    onUpdateCategory: (CategoryEntity) -> Unit,
     onDeleteCategory: (id: Int) -> Unit
 ) {
     // category totals (id, name, total)
@@ -58,10 +58,26 @@ fun CategoryListContent(
     val newCategoryName = remember { mutableStateOf("") }
     val showFilterDialog = remember { mutableStateOf(false) }
 
+    // auto transaction states for add dialog
+    val addAutoEnabled = remember { mutableStateOf(false) }
+    val addAutoAmount = remember { mutableStateOf(0.0) }
+    val addAutoType = remember { mutableStateOf("Expense") }
+    val addAutoRepeatType = remember { mutableStateOf("WEEKLY") }
+    val addAutoDayOfWeek = remember { mutableStateOf<Int?>(null) }
+    val addAutoDayOfMonth = remember { mutableStateOf<Int?>(null) }
+
     // edit dialog state
     val showEditDialog = remember { mutableStateOf(false) }
     val editCategoryName = remember { mutableStateOf("") }
     val editingCategoryId = remember { mutableStateOf<Int?>(null) }
+
+    // auto transaction states for edit dialog
+    val editAutoEnabled = remember { mutableStateOf(false) }
+    val editAutoAmount = remember { mutableStateOf(0.0) }
+    val editAutoType = remember { mutableStateOf("Expense") }
+    val editAutoRepeatType = remember { mutableStateOf("WEEKLY") }
+    val editAutoDayOfWeek = remember { mutableStateOf<Int?>(null) }
+    val editAutoDayOfMonth = remember { mutableStateOf<Int?>(null) }
 
     // delete confirmation state
     val showDeleteDialog = remember { mutableStateOf(false) }
@@ -95,6 +111,15 @@ fun CategoryListContent(
                             // find name from entities (fallback to summary name)
                             val entity = categoryEntities.find { it.id == c.id }
                             editCategoryName.value = entity?.name ?: c.name
+
+                            // populate auto fields from entity
+                            editAutoEnabled.value = entity?.isAutoTransactionEnabled ?: false
+                            editAutoAmount.value = entity?.autoAmount ?: 0.0
+                            editAutoType.value = entity?.autoType ?: "Expense"
+                            editAutoRepeatType.value = entity?.autoRepeatType ?: "WEEKLY"
+                            editAutoDayOfWeek.value = entity?.autoDayOfWeek
+                            editAutoDayOfMonth.value = entity?.autoDayOfMonth
+
                             showEditDialog.value = true
                         }, onDelete = {
                             // prepare delete confirmation
@@ -115,8 +140,24 @@ fun CategoryListContent(
                 Button(onClick = {
                     val name = newCategoryName.value.trim()
                     if (name.isNotEmpty()) {
-                        onInsertCategory(name)
+                        val category = CategoryEntity(
+                            name = name,
+                            isAutoTransactionEnabled = addAutoEnabled.value,
+                            autoAmount = addAutoAmount.value,
+                            autoType = addAutoType.value,
+                            autoRepeatType = addAutoRepeatType.value,
+                            autoDayOfWeek = addAutoDayOfWeek.value,
+                            autoDayOfMonth = addAutoDayOfMonth.value
+                        )
+                        onInsertCategory(category)
                         newCategoryName.value = ""
+                        // reset add states
+                        addAutoEnabled.value = false
+                        addAutoAmount.value = 0.0
+                        addAutoType.value = "Expense"
+                        addAutoRepeatType.value = "WEEKLY"
+                        addAutoDayOfWeek.value = null
+                        addAutoDayOfMonth.value = null
                         showAddDialog.value = false
                     }
                 }) { ExpenseTextView(text = "Lưu") }
@@ -133,12 +174,83 @@ fun CategoryListContent(
                         onValueChange = { newCategoryName.value = it },
                         placeholder = { ExpenseTextView(text = "Tên danh mục") }
                     )
+
+                    Spacer(modifier = Modifier.size(12.dp))
+
+                    // Auto transaction section
+                    ExpenseTextView(text = "🔁 Giao dịch tự động", fontWeight = MaterialTheme.typography.titleLarge.fontWeight)
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = addAutoEnabled.value, onCheckedChange = { addAutoEnabled.value = it })
+                        Spacer(modifier = Modifier.size(8.dp))
+                        ExpenseTextView(text = "Bật giao dịch tự động")
+                    }
+
+                    if (addAutoEnabled.value) {
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Amount
+                        androidx.compose.material3.OutlinedTextField(
+                            value = if (addAutoAmount.value == 0.0) "" else addAutoAmount.value.toString(),
+                            onValueChange = { v ->
+                                val cleaned = v.filter { it.isDigit() || it == '.' }
+                                addAutoAmount.value = cleaned.toDoubleOrNull() ?: 0.0
+                            },
+                            placeholder = { ExpenseTextView(text = "Số tiền") }
+                        )
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Type: Expense or Income
+                        Row {
+                            androidx.compose.material3.RadioButton(selected = addAutoType.value == "Expense", onClick = { addAutoType.value = "Expense" })
+                            ExpenseTextView(text = "Chi")
+                            Spacer(modifier = Modifier.size(12.dp))
+                            androidx.compose.material3.RadioButton(selected = addAutoType.value == "Income", onClick = { addAutoType.value = "Income" })
+                            ExpenseTextView(text = "Thu")
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Repeat type dropdown (simple toggles)
+                        Row {
+                            Button(onClick = { addAutoRepeatType.value = "WEEKLY" }) { ExpenseTextView(text = if (addAutoRepeatType.value == "WEEKLY") "Hằng tuần ✓" else "Hằng tuần") }
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Button(onClick = { addAutoRepeatType.value = "MONTHLY" }) { ExpenseTextView(text = if (addAutoRepeatType.value == "MONTHLY") "Hằng tháng ✓" else "Hằng tháng") }
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        if (addAutoRepeatType.value == "WEEKLY") {
+                            // Day of week dropdown
+                            val days = listOf("Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật")
+                            Column {
+                                ExpenseTextView(text = "Chọn ngày trong tuần")
+                                days.forEachIndexed { idx, label ->
+                                    Button(onClick = { addAutoDayOfWeek.value = idx + 1 }) {
+                                        ExpenseTextView(text = if (addAutoDayOfWeek.value == idx + 1) "$label ✓" else label)
+                                    }
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                }
+                            }
+                        } else {
+                            // Monthly: day of month input (1-28)
+                            androidx.compose.material3.OutlinedTextField(
+                                value = addAutoDayOfMonth.value?.toString() ?: "",
+                                onValueChange = { v ->
+                                    val cleaned = v.filter { it.isDigit() }
+                                    val iv = cleaned.toIntOrNull()
+                                    if (iv != null && iv in 1..28) addAutoDayOfMonth.value = iv
+                                },
+                                placeholder = { ExpenseTextView(text = "Ngày trong tháng (1-28)") }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        ExpenseTextView(text = "Giao dịch sẽ tự động tạo theo lịch. Bạn vẫn có thể nhập giao dịch thủ công.")
+                    }
                 }
             }
         )
     }
 
-    // Edit dialog for rename
+    // Edit dialog for rename and auto config
     if (showEditDialog.value && editingCategoryId.value != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog.value = false },
@@ -147,7 +259,17 @@ fun CategoryListContent(
                     val id = editingCategoryId.value!!
                     val newName = editCategoryName.value.trim()
                     if (newName.isNotEmpty()) {
-                        onUpdateCategory(id, newName)
+                        val updated = CategoryEntity(
+                            id = id,
+                            name = newName,
+                            isAutoTransactionEnabled = editAutoEnabled.value,
+                            autoAmount = editAutoAmount.value,
+                            autoType = editAutoType.value,
+                            autoRepeatType = editAutoRepeatType.value,
+                            autoDayOfWeek = editAutoDayOfWeek.value,
+                            autoDayOfMonth = editAutoDayOfMonth.value
+                        )
+                        onUpdateCategory(updated)
                         showEditDialog.value = false
                     }
                 }) { ExpenseTextView(text = "Lưu") }
@@ -164,6 +286,75 @@ fun CategoryListContent(
                         onValueChange = { editCategoryName.value = it },
                         placeholder = { ExpenseTextView(text = "Tên danh mục") }
                     )
+
+                    Spacer(modifier = Modifier.size(12.dp))
+
+                    // Auto transaction section (same as Add)
+                    ExpenseTextView(text = "🔁 Giao dịch tự động", fontWeight = MaterialTheme.typography.titleLarge.fontWeight)
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = editAutoEnabled.value, onCheckedChange = { editAutoEnabled.value = it })
+                        Spacer(modifier = Modifier.size(8.dp))
+                        ExpenseTextView(text = "Bật giao dịch tự động")
+                    }
+
+                    if (editAutoEnabled.value) {
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Amount
+                        androidx.compose.material3.OutlinedTextField(
+                            value = if (editAutoAmount.value == 0.0) "" else editAutoAmount.value.toString(),
+                            onValueChange = { v ->
+                                val cleaned = v.filter { it.isDigit() || it == '.' }
+                                editAutoAmount.value = cleaned.toDoubleOrNull() ?: 0.0
+                            },
+                            placeholder = { ExpenseTextView(text = "Số tiền") }
+                        )
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Type
+                        Row {
+                            androidx.compose.material3.RadioButton(selected = editAutoType.value == "Expense", onClick = { editAutoType.value = "Expense" })
+                            ExpenseTextView(text = "Chi")
+                            Spacer(modifier = Modifier.size(12.dp))
+                            androidx.compose.material3.RadioButton(selected = editAutoType.value == "Income", onClick = { editAutoType.value = "Income" })
+                            ExpenseTextView(text = "Thu")
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        // Repeat type
+                        Row {
+                            Button(onClick = { editAutoRepeatType.value = "WEEKLY" }) { ExpenseTextView(text = if (editAutoRepeatType.value == "WEEKLY") "Hằng tuần ✓" else "Hằng tuần") }
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Button(onClick = { editAutoRepeatType.value = "MONTHLY" }) { ExpenseTextView(text = if (editAutoRepeatType.value == "MONTHLY") "Hằng tháng ✓" else "Hằng tháng") }
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        if (editAutoRepeatType.value == "WEEKLY") {
+                            val days = listOf("Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật")
+                            Column {
+                                ExpenseTextView(text = "Chọn ngày trong tuần")
+                                days.forEachIndexed { idx, label ->
+                                    Button(onClick = { editAutoDayOfWeek.value = idx + 1 }) {
+                                        ExpenseTextView(text = if (editAutoDayOfWeek.value == idx + 1) "$label ✓" else label)
+                                    }
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                }
+                            }
+                        } else {
+                            androidx.compose.material3.OutlinedTextField(
+                                value = editAutoDayOfMonth.value?.toString() ?: "",
+                                onValueChange = { v ->
+                                    val cleaned = v.filter { it.isDigit() }
+                                    val iv = cleaned.toIntOrNull()
+                                    if (iv != null && iv in 1..28) editAutoDayOfMonth.value = iv
+                                },
+                                placeholder = { ExpenseTextView(text = "Ngày trong tháng (1-28)") }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.size(8.dp))
+                        ExpenseTextView(text = "Giao dịch sẽ tự động tạo theo lịch. Bạn vẫn có thể nhập giao dịch thủ công.")
+                    }
                 }
             }
         )
@@ -229,11 +420,8 @@ fun CategoryListScreen(navController: NavController, viewModel: CategoryViewMode
             val encoded = Uri.encode(name)
             navController.navigate("/category_detail/$encoded")
         },
-        onInsertCategory = { name -> viewModel.insertCategory(CategoryEntity(name = name)) },
-        onUpdateCategory = { id, newName ->
-            // find current entity id/name
-            viewModel.updateCategory(CategoryEntity(id = id, name = newName))
-        },
+        onInsertCategory = { category -> viewModel.insertCategory(category) },
+        onUpdateCategory = { category -> viewModel.updateCategory(category) },
         onDeleteCategory = { id ->
             // find entity by id and call viewModel.deleteCategory
             // safe: lookup by id via categoriesFlow not available here synchronously; call delete by constructing entity with id
@@ -260,7 +448,7 @@ fun PreviewCategoryListContent() {
             categoriesFlow = flowOf(sampleEntities),
             onOpenCategory = {},
             onInsertCategory = {},
-            onUpdateCategory = { _, _ -> },
+            onUpdateCategory = { },
             onDeleteCategory = {}
         )
     }
