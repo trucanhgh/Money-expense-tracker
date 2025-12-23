@@ -75,7 +75,10 @@ import com.codewithfk.expensetracker.android.ui.theme.LocalAppUi
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.ui.theme.Typography
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -236,9 +239,11 @@ fun DataForm(
     }
 
     // missing form state: amount, type, date, dateDialogVisibility
+    // store only digits in the state (no dots). VisualTransformation will render dots while typing.
     val amount = remember { mutableStateOf("") }
     val type = remember { mutableStateOf(if (isIncome) "Income" else "Expense") }
-    val date = remember { mutableLongStateOf(0L) }
+    // Use nullable Long to represent anunset date (null = not chosen)
+    val date = remember { mutableStateOf<Long?>(null) }
     val dateDialogVisibility = remember { mutableStateOf(false) }
 
     // collect categories from ViewModel
@@ -280,22 +285,11 @@ fun DataForm(
         OutlinedTextField(
             value = amount.value,
             onValueChange = { newValue ->
-                amount.value = newValue.filter { it.isDigit() || it == '.' }
-            }, textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
-            visualTransformation = { text ->
-                val out = "₫" + text.text
-                 val currencyOffsetTranslator = object : OffsetMapping {
-                    override fun originalToTransformed(offset: Int): Int {
-                        return offset + 1
-                    }
-
-                    override fun transformedToOriginal(offset: Int): Int {
-                        return if (offset > 0) offset - 1 else 0
-                    }
-                }
-
-                TransformedText(AnnotatedString(out), currencyOffsetTranslator)
+                // keep only digits in the underlying value; visual transformation will show dots
+                amount.value = MoneyFormatting.unformat(newValue)
             },
+            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+            visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { ExpenseTextView(text = "Nhập số tiền") },
@@ -310,9 +304,8 @@ fun DataForm(
         )
         Spacer(modifier = Modifier.size(24.dp))
         TitleComponent("Ngày")
-        OutlinedTextField(value = if (date.longValue == 0L) "" else Utils.formatDateToHumanReadableForm(
-            date.longValue
-        ),
+        OutlinedTextField(
+            value = date.value?.let { Utils.formatDateToHumanReadableForm(it) } ?: "",
             onValueChange = {},
             modifier = Modifier
                 .fillMaxWidth()
@@ -322,16 +315,18 @@ fun DataForm(
                 disabledBorderColor = MaterialTheme.colorScheme.outline, disabledTextColor = MaterialTheme.colorScheme.onSurface,
                 disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
             ),
-            placeholder = { ExpenseTextView(text = "Chọn ngày") })
+            placeholder = { ExpenseTextView(text = "Chọn ngày") }
+        )
         Spacer(modifier = Modifier.size(24.dp))
         Button(
             onClick = {
                 val trimmedName = name.value.trim()
-                // If user never picked a date (date.longValue == 0L), record current time as the date.
-                val effectiveDateMillis = if (date.longValue == 0L) System.currentTimeMillis() else date.longValue
+                // If user never picked a date, fallback to today's local date at start of day
+                val effectiveDateMillis = date.value ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 val model = ExpenseEntity(
                     null,
                     trimmedName,
+                    // amount.value stores only digits (no separators); parse safely
                     amount.value.toDoubleOrNull() ?: 0.0,
                     Utils.formatDateToHumanReadableForm(effectiveDateMillis),
                     type.value
@@ -349,12 +344,12 @@ fun DataForm(
     if (dateDialogVisibility.value) {
         ExpenseDatePickerDialog(onDateSelected = {
             // The dialog will provide a valid millis; set it and close the picker
-            date.longValue = it
+            date.value = it
             dateDialogVisibility.value = false
         }, onDismiss = {
             // User canceled; just close the picker without changing date
             dateDialogVisibility.value = false
-        })
+        }, initialSelectedMillis = date.value)
     }
 }
 
@@ -466,13 +461,15 @@ fun CategoryDropdownWithAdd(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseDatePickerDialog(
-    onDateSelected: (date: Long) -> Unit, onDismiss: () -> Unit
+    onDateSelected: (date: Long) -> Unit,
+    onDismiss: () -> Unit,
+    initialSelectedMillis: Long? = null
 ) {
-    val datePickerState = rememberDatePickerState()
-    // If user doesn't pick a date, selectedDateMillis will be null; use current time as fallback
+    // Pass initial selection so the picker shows existing date if present
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialSelectedMillis)
     DatePickerDialog(onDismissRequest = { onDismiss() }, confirmButton = {
         TextButton(onClick = {
-            val selected = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+            val selected = datePickerState.selectedDateMillis ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             onDateSelected(selected)
         }) {
             ExpenseTextView(text = "Xác nhận")

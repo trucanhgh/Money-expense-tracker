@@ -23,6 +23,11 @@ import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.widget.TransactionItemRow
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
+import java.time.LocalDate
+import java.time.ZoneId
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,9 +50,8 @@ fun GoalDetailContent(
     val showDialog = remember { mutableStateOf(false) }
     val dialogType = remember { mutableStateOf("Expense") } // "Income" or "Expense"
     val amountInput = remember { mutableStateOf("") }
-    // dateMillis == 0L means user hasn't picked a date yet (show empty). If user confirms without selecting,
-    // we'll use current time as fallback (consistent with AddExpense behavior).
-    val dateMillis = remember { mutableLongStateOf(0L) }
+    // Use nullable Long for date; null means user hasn't selected a date yet.
+    val dateMillis = remember { mutableStateOf<Long?>(null) }
     val datePickerVisible = remember { mutableStateOf(false) }
 
     Scaffold(topBar = {}) { padding ->
@@ -94,7 +98,7 @@ fun GoalDetailContent(
                         dialogType.value = "Income"
                         amountInput.value = ""
                         // don't prefill date; keep 0L so field stays empty unless user picks a date
-                        dateMillis.longValue = 0L
+                        dateMillis.value = null
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Rút khỏi quỹ")
@@ -104,7 +108,7 @@ fun GoalDetailContent(
                         dialogType.value = "Expense"
                         amountInput.value = ""
                         // keep date unset until user selects
-                        dateMillis.longValue = 0L
+                        dateMillis.value = null
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Nạp vào quỹ")
@@ -154,10 +158,11 @@ fun GoalDetailContent(
     if (showDialog.value) {
         AlertDialog(onDismissRequest = { showDialog.value = false }, confirmButton = {
             TextButton(onClick = {
-                // normalize thousand separators and commas
-                val cleaned = amountInput.value.replace(Regex("[.,\\s]"), "")
-                val amt = cleaned.toDoubleOrNull() ?: 0.0
-                val dateStr = Utils.formatDateToHumanReadableForm(dateMillis.longValue)
+                // amountInput stores digits-only (no separators)
+                val amt = amountInput.value.toDoubleOrNull() ?: 0.0
+                // If no date chosen, fallback to today's local date at start of day in device zone
+                val effectiveDate = dateMillis.value ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val dateStr = Utils.formatDateToHumanReadableForm(effectiveDate)
                 // insert via callback
                 onInsertContribution(name, amt, dateStr, dialogType.value)
                 showDialog.value = false
@@ -170,19 +175,31 @@ fun GoalDetailContent(
                 // Withdraw from goal should be an Income (increases global balance).
                 ExpenseTextView(text = if (dialogType.value == "Income") "Rút khỏi mục tiêu" else "Nạp vào mục tiêu", color = Color.Black)
                 Spacer(modifier = Modifier.size(8.dp))
-                OutlinedTextField(value = amountInput.value, onValueChange = { v ->
-                    // allow digits and dots and commas
-                    amountInput.value = v.filter { it.isDigit() || it == '.' || it == ',' }
-                }, placeholder = { ExpenseTextView(text = "Số tiền (VND)") })
+                OutlinedTextField(
+                    value = amountInput.value,
+                    onValueChange = { v ->
+                        // keep underlying value digits-only; visual transformation shows thousand separators
+                        amountInput.value = MoneyFormatting.unformat(v)
+                    },
+                    visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    placeholder = { ExpenseTextView(text = "Số tiền (VND)") }
+                )
                 Spacer(modifier = Modifier.size(8.dp))
-                OutlinedTextField(value = Utils.formatDateToHumanReadableForm(dateMillis.longValue), onValueChange = {}, modifier = Modifier.clickable { datePickerVisible.value = true }, readOnly = true, placeholder = { ExpenseTextView(text = "Chọn ngày") })
+                OutlinedTextField(
+                    value = dateMillis.value?.let { Utils.formatDateToHumanReadableForm(it) } ?: "",
+                    onValueChange = {},
+                    modifier = Modifier.clickable { datePickerVisible.value = true },
+                    readOnly = true,
+                    placeholder = { ExpenseTextView(text = "Chọn ngày") }
+                )
 
                 if (datePickerVisible.value) {
-                    val pickerState = rememberDatePickerState()
+                    val pickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis.value)
                     DatePickerDialog(onDismissRequest = { datePickerVisible.value = false }, confirmButton = {
                         TextButton(onClick = {
-                            val selected = pickerState.selectedDateMillis ?: System.currentTimeMillis()
-                            dateMillis.longValue = selected
+                            val selected = pickerState.selectedDateMillis ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                            dateMillis.value = selected
                             datePickerVisible.value = false
                         }) { ExpenseTextView(text = "Xác nhận") }
                     }, dismissButton = {

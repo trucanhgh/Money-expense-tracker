@@ -47,9 +47,12 @@ import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 /**
  * Stateless UI for Goal List. Accepts data and callbacks. It may call getContributionsForGoal to collect flows.
@@ -65,6 +68,7 @@ fun GoalListContent(
 ) {
     val showAddDialog = remember { mutableStateOf(false) }
     val newName = remember { mutableStateOf("") }
+    // store digits only for target; visual transformation renders dots while typing
     val newTarget = remember { mutableStateOf("") }
 
     // edit / delete dialog state
@@ -176,7 +180,8 @@ fun GoalListContent(
             Button(
                 onClick = {
                     val name = newName.value.trim()
-                    val target = newTarget.value.replace(Regex("[.,\\s]"), "").toDoubleOrNull() ?: 0.0
+                    // newTarget stores digits-only already (MoneyFormatting.unformat on input).
+                    val target = newTarget.value.toDoubleOrNull() ?: 0.0
                     if (name.isNotEmpty()) {
                         onCreateGoal(name, target)
                         newName.value = ""
@@ -192,7 +197,16 @@ fun GoalListContent(
                 Spacer(modifier = Modifier.size(8.dp))
                 androidx.compose.material3.OutlinedTextField(value = newName.value, onValueChange = { newName.value = it }, placeholder = { ExpenseTextView(text = "Tên mục tiêu") })
                 Spacer(modifier = Modifier.size(8.dp))
-                androidx.compose.material3.OutlinedTextField(value = newTarget.value, onValueChange = { newTarget.value = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } }, placeholder = { ExpenseTextView(text = "Số tiền mục tiêu (VND)") })
+                androidx.compose.material3.OutlinedTextField(
+                    value = newTarget.value,
+                    onValueChange = { v ->
+                        // keep only digits in backing state
+                        newTarget.value = MoneyFormatting.unformat(v)
+                    },
+                    visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    placeholder = { ExpenseTextView(text = "Số tiền mục tiêu (VND)") }
+                )
             }
         })
     }

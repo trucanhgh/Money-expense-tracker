@@ -50,6 +50,9 @@ import kotlinx.coroutines.flow.flowOf
 import java.util.Calendar
 import java.util.Locale
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
 
 @Composable
 fun CategoryListContent(
@@ -76,6 +79,8 @@ fun CategoryListContent(
     // auto transaction states for add dialog
     val addAutoEnabled = remember { mutableStateOf(false) }
     val addAutoAmount = remember { mutableStateOf(0.0) }
+    // string backing for input (digits only). VisualTransformation will show dots.
+    val addAutoAmountInput = remember { mutableStateOf("") }
     val addAutoType = remember { mutableStateOf("Expense") }
     val addAutoRepeatType = remember { mutableStateOf("WEEKLY") }
     val addAutoDayOfWeek = remember { mutableStateOf<Int?>(null) }
@@ -93,6 +98,7 @@ fun CategoryListContent(
     // auto transaction states for edit dialog
     val editAutoEnabled = remember { mutableStateOf(false) }
     val editAutoAmount = remember { mutableStateOf(0.0) }
+    val editAutoAmountInput = remember { mutableStateOf("") }
     val editAutoType = remember { mutableStateOf("Expense") }
     val editAutoRepeatType = remember { mutableStateOf("WEEKLY") }
     val editAutoDayOfWeek = remember { mutableStateOf<Int?>(null) }
@@ -208,11 +214,15 @@ fun CategoryListContent(
                         Spacer(modifier = Modifier.size(8.dp))
                         // Amount
                         androidx.compose.material3.OutlinedTextField(
-                            value = if (addAutoAmount.value == 0.0) "" else addAutoAmount.value.toString(),
+                            value = addAutoAmountInput.value,
                             onValueChange = { v ->
-                                val cleaned = v.filter { it.isDigit() || it == '.' }
-                                addAutoAmount.value = cleaned.toDoubleOrNull() ?: 0.0
+                                // keep only digits
+                                val digitsOnly = MoneyFormatting.unformat(v)
+                                addAutoAmountInput.value = digitsOnly
+                                addAutoAmount.value = digitsOnly.toDoubleOrNull() ?: 0.0
                             },
+                            visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             placeholder = { ExpenseTextView(text = "Số tiền") }
                         )
 
@@ -327,12 +337,15 @@ fun CategoryListContent(
                         Spacer(modifier = Modifier.size(8.dp))
                         // Amount
                         androidx.compose.material3.OutlinedTextField(
-                            value = if (editAutoAmount.value == 0.0) "" else editAutoAmount.value.toString(),
+                            value = editAutoAmountInput.value,
                             onValueChange = { v ->
-                                val cleaned = v.filter { it.isDigit() || it == '.' }
-                                editAutoAmount.value = cleaned.toDoubleOrNull() ?: 0.0
+                                val digitsOnly = MoneyFormatting.unformat(v)
+                                editAutoAmountInput.value = digitsOnly
+                                editAutoAmount.value = digitsOnly.toDoubleOrNull() ?: 0.0
                             },
-                                placeholder = { ExpenseTextView(text = "Số tiền") }
+                            visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            placeholder = { ExpenseTextView(text = "Số tiền") }
                         )
 
                         Spacer(modifier = Modifier.size(8.dp))
