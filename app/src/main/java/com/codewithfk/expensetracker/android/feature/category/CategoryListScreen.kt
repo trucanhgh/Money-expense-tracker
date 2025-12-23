@@ -1,21 +1,26 @@
 package com.codewithfk.expensetracker.android.feature.category
 
 import android.net.Uri
-import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,20 +28,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.CategorySummary
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import kotlinx.coroutines.flow.Flow
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import kotlinx.coroutines.flow.flowOf
 import java.util.Calendar
 import java.util.Locale
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 
 @Composable
 fun CategoryListContent(
@@ -234,11 +247,11 @@ fun CategoryListContent(
                                 display.forEachIndexed { idx, ch ->
                                     val dayValue = dayMap[idx]
                                     val selected = addAutoDayOfWeek.value == dayValue
-                                    androidx.compose.material3.FilterChip(
+                                    WeekdayChip(
+                                        label = ch,
                                         selected = selected,
                                         onClick = { addAutoDayOfWeek.value = if (selected) null else dayValue },
-                                        label = { androidx.compose.material3.Text(text = ch) },
-                                        modifier = Modifier.size(32.dp)
+                                        size = 34.dp
                                     )
                                 }
                             }
@@ -352,11 +365,11 @@ fun CategoryListContent(
                                 display.forEachIndexed { idx, ch ->
                                     val dayValue = dayMap[idx]
                                     val selected = editAutoDayOfWeek.value == dayValue
-                                    androidx.compose.material3.FilterChip(
+                                    WeekdayChip(
+                                        label = ch,
                                         selected = selected,
                                         onClick = { editAutoDayOfWeek.value = if (selected) null else dayValue },
-                                        label = { androidx.compose.material3.Text(text = ch) },
-                                        modifier = Modifier.size(32.dp)
+                                        size = 34.dp
                                     )
                                 }
                             }
@@ -470,6 +483,38 @@ fun PreviewCategoryListContent() {
             onInsertCategory = {},
             onUpdateCategory = { },
             onDeleteCategory = {}
+        )
+    }
+}
+
+// WeekdayChip implementation (kept at bottom of file or near other helpers)
+@Composable
+private fun WeekdayChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    size: Dp = 34.dp,
+    shape: Shape = RoundedCornerShape(6.dp),
+    textSize: TextUnit = 12.sp
+) {
+    val bgColor = if (selected) Color(0xFFE0E0E0) else Color.Transparent
+    val borderColor = if (selected) Color.Transparent else Color(0xFFBDBDBD)
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(shape)
+            .background(bgColor)
+            .then(if (!selected) Modifier.border(width = 1.dp, color = borderColor, shape = shape) else Modifier)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = textSize,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Medium
         )
     }
 }
