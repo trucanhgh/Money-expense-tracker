@@ -5,7 +5,6 @@ import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
-import com.codewithfk.expensetracker.android.data.repository.NotificationRepository
 import com.codewithfk.expensetracker.android.utils.Utils
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -13,6 +12,8 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 @Singleton
 class CategoryRepository @Inject constructor(
@@ -23,6 +24,20 @@ class CategoryRepository @Inject constructor(
 ) {
     private val userId: String = currentUserProvider.getUserId() ?: ""
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    // New: provide a Flow of categories intended for normal transactions (exclude goals/funds)
+    // Currently the project does not have an explicit isGoal/type column on CategoryEntity,
+    // so we exclude the special category named "Quỹ" (trimmed, case-insensitive).
+    // If in future you add an explicit flag (isGoal/type), update this method instead.
+    fun getTransactionCategories(): Flow<List<CategoryEntity>> {
+        return categoryDao.getAllCategories(userId).map { list ->
+            list.filter { cat ->
+                val nm = cat.name.trim()
+                // exclude exact match for Vietnamese "Quỹ" (case-insensitive)
+                !nm.equals("Quỹ", ignoreCase = true)
+            }
+        }
+    }
 
     // New: API requested by the spec
     suspend fun processCategoryAutoTransactions(today: LocalDate) {

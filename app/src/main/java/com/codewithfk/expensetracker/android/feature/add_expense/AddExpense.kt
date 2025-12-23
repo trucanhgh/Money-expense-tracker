@@ -2,7 +2,6 @@
 
 package com.codewithfk.expensetracker.android.feature.add_expense
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 // dark mode removed; always use light-mode defaults
@@ -39,7 +38,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -52,12 +50,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,7 +85,6 @@ fun AddExpenseContent(
     isIncome: Boolean,
     initialPrefill: String = "",
     categoriesFlowProvider: () -> Flow<List<CategoryEntity>>,
-    goalsFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.GoalEntity>>,
     onBack: () -> Unit,
     onMenuClicked: () -> Unit,
     onAddExpenseClick: (ExpenseEntity) -> Unit,
@@ -179,7 +173,6 @@ fun AddExpenseContent(
                 onAddExpenseClick = onAddExpenseClick,
                 isIncome = isIncome,
                 categoriesFlow = categoriesFlowProvider(),
-                goalsFlow = goalsFlowProvider(),
                 initialPrefill = initialPrefill,
                 onInsertCategory = onInsertCategory
             )
@@ -210,7 +203,6 @@ fun AddExpense(
         isIncome = isIncome,
         initialPrefill = initialPrefill,
         categoriesFlowProvider = { viewModel.categories },
-        goalsFlowProvider = { viewModel.goals },
         onBack = { viewModel.onEvent(AddExpenseUiEvent.OnBackPressed) },
         onMenuClicked = { viewModel.onEvent(AddExpenseUiEvent.OnMenuClicked) },
         onAddExpenseClick = { model -> viewModel.onEvent(AddExpenseUiEvent.OnAddExpenseClicked(model)) },
@@ -224,7 +216,6 @@ fun DataForm(
     onAddExpenseClick: (model: ExpenseEntity) -> Unit,
     isIncome: Boolean,
     categoriesFlow: Flow<List<CategoryEntity>>,
-    goalsFlow: Flow<List<com.codewithfk.expensetracker.android.data.model.GoalEntity>>,
     initialPrefill: String = "",
     onInsertCategory: (String, (Boolean) -> Unit) -> Unit
 ) {
@@ -248,10 +239,9 @@ fun DataForm(
 
     // collect categories from ViewModel
     val categoriesState by categoriesFlow.collectAsState(initial = emptyList())
-    val goalsState by goalsFlow.collectAsState(initial = emptyList())
 
-    // combined list: categories then goals
-    val combined = (categoriesState.map { it.name } + goalsState.map { it.name }).distinct()
+    // dropdown should only show transaction categories (goals are excluded at repository layer and not mixed here)
+    val combined = categoriesState.map { it.name }.distinct()
 
     Column(
         modifier = modifier
@@ -541,7 +531,6 @@ fun ExpenseDropDown(listOfItems: List<String>, onItemSelected: (item: String) ->
 @Composable
 fun PreviewAddExpenseContent() {
     val sampleCategories = listOf(CategoryEntity(id = 1, name = "Ăn uống"), CategoryEntity(id = 2, name = "Di chuyển"))
-    val sampleGoals = listOf(com.codewithfk.expensetracker.android.data.model.GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0))
 
     // Wrap preview in the app theme so LocalAppUi and theme colors are provided
     ExpenseTrackerAndroidTheme(darkTheme = false) {
@@ -549,7 +538,6 @@ fun PreviewAddExpenseContent() {
             isIncome = false,
             initialPrefill = "",
             categoriesFlowProvider = { flowOf(sampleCategories) },
-            goalsFlowProvider = { flowOf(sampleGoals) },
             onBack = {},
             onMenuClicked = {},
             onAddExpenseClick = {},
