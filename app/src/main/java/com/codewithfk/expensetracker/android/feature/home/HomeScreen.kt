@@ -431,8 +431,8 @@ fun TransactionList(
     title: String = "Giao dịch gần đây",
     onSeeAllClicked: () -> Unit
 ) {
-    // Always display newest transactions at top. Dates are stored as dd/MM/yyyy strings; convert to millis to sort.
-    val sorted = list.sortedByDescending { Utils.getMillisFromDate(it.date) }
+    // Always display newest transactions at top. Use the exact creation timestamp for deterministic ordering.
+    val sorted = list.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
 
     // Use fixed light-mode colors (no dark/light switching)
     val sectionTitleColor = Color.Black

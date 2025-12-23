@@ -18,7 +18,7 @@ import com.codewithfk.expensetracker.android.data.model.NotificationEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Singleton
 
-@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class, NotificationEntity::class], version = 8, exportSchema = false)
+@Database(entities = [ExpenseEntity::class, CategoryEntity::class, UserEntity::class, GoalEntity::class, NotificationEntity::class], version = 9, exportSchema = false)
 @Singleton
 abstract class ExpenseDatabase : RoomDatabase() {
 
@@ -45,6 +45,7 @@ abstract class ExpenseDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_5_6)
                     .addMigrations(MIGRATION_6_7)
                     .addMigrations(MIGRATION_7_8)
+                    .addMigrations(MIGRATION_8_9)
                     .build()
                 INSTANCE = instance
                 instance
@@ -226,5 +227,18 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
             )
             """.trimIndent()
         )
+    }
+}
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add createdAt column to expense_table. Use default 0 for existing rows, then backfill with current time.
+        try {
+            db.execSQL("ALTER TABLE expense_table ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+            // Backfill existing rows createdAt to current time (milliseconds)
+            db.execSQL("UPDATE expense_table SET createdAt = (strftime('%s','now') * 1000) WHERE createdAt = 0")
+        } catch (_: Exception) {
+            // If migration fails, do not crash; keep best-effort approach
+        }
     }
 }

@@ -11,5 +11,6 @@ data class ExpenseEntity(
     val date: String,
     val type: String,
     val note: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
     val ownerId: String = "" // user id / owner for multi-user scoping
 )

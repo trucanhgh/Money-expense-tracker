@@ -85,8 +85,8 @@ class TransactionViewModel @Inject constructor(
             DateRange.LAST_365_DAYS -> byType.filter { UtilsDate.getMillisFromDate(it.date) >= now - 365L * 24 * 60 * 60 * 1000 }
         }
 
-        // Sort descending by date
-        filteredByDate.sortedByDescending { UtilsDate.getMillisFromDate(it.date) }
+        // Sort descending by exact creation timestamp (newest first). If timestamps equal, fallback to id DESC.
+        filteredByDate.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 }
 

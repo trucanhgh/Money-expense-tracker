@@ -140,7 +140,8 @@ fun GoalDetailContent(
                     ExpenseTextView(text = "Không có giao dịch", color = Color.Black)
                 } else {
                     // show newest transactions first
-                    val sortedContributions = contributions.sortedByDescending { Utils.getMillisFromDate(it.date) }
+                    // Ensure newest transactions appear first: sort by exact creation timestamp then by id as fallback.
+                    val sortedContributions = contributions.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
                     sortedContributions.forEach { e ->
                         // Keep the previous domain-specific sign behavior: contributions (Expense) shown positive,
                         // withdrawals (Income) shown negative. Styling (font, spacing, color) is unified via TransactionItemRow.

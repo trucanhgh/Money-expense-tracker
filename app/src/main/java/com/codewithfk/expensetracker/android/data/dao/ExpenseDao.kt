@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface ExpenseDao {
 
     // All queries are now scoped by ownerId
-    @Query("SELECT * FROM expense_table WHERE ownerId = :userId")
+    @Query("SELECT * FROM expense_table WHERE ownerId = :userId ORDER BY createdAt DESC, id DESC")
     fun getAllExpense(userId: String): Flow<List<ExpenseEntity>>
 
     @Query("SELECT * FROM expense_table WHERE ownerId = :userId AND type = 'Expense' ORDER BY amount DESC LIMIT 5")
@@ -52,7 +52,7 @@ interface ExpenseDao {
 
     // Get expenses belonging to a category, optionally filtered by month (MM/YYYY)
     @Query(
-        "SELECT * FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%') AND (:month IS NULL OR substr(date,4) = :month)"
+        "SELECT * FROM expense_table WHERE ownerId = :userId AND (lower(trim(title)) = lower(trim(:categoryName)) OR lower(title) LIKE '%' || lower(:categoryName) || '%') AND (:month IS NULL OR substr(date,4) = :month) ORDER BY createdAt DESC, id DESC"
     )
     fun getExpensesByCategory(userId: String, categoryName: String, month: String? = null): Flow<List<ExpenseEntity>>
 
