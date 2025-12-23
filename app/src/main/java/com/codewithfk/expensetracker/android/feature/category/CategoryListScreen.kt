@@ -35,6 +35,8 @@ import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 
 @Composable
 fun CategoryListContent(
@@ -65,6 +67,10 @@ fun CategoryListContent(
     val addAutoRepeatType = remember { mutableStateOf("WEEKLY") }
     val addAutoDayOfWeek = remember { mutableStateOf<Int?>(null) }
     val addAutoDayOfMonth = remember { mutableStateOf<Int?>(null) }
+
+    // scroll state for add/edit weekday rows (keep at top-level @Composable scope)
+    val addScrollState = rememberScrollState()
+    val editScrollState = rememberScrollState()
 
     // edit dialog state
     val showEditDialog = remember { mutableStateOf(false) }
@@ -178,12 +184,11 @@ fun CategoryListContent(
                     Spacer(modifier = Modifier.size(12.dp))
 
                     // Auto transaction section
-                    ExpenseTextView(text = "🔁 Giao dịch tự động", fontWeight = MaterialTheme.typography.titleLarge.fontWeight)
-                    Spacer(modifier = Modifier.size(6.dp))
+                    // Compact auto-transaction toggle (no headline)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         androidx.compose.material3.Switch(checked = addAutoEnabled.value, onCheckedChange = { addAutoEnabled.value = it })
                         Spacer(modifier = Modifier.size(8.dp))
-                        ExpenseTextView(text = "Bật giao dịch tự động")
+                        ExpenseTextView(text = "Bật chi tiêu tự động")
                     }
 
                     if (addAutoEnabled.value) {
@@ -218,15 +223,23 @@ fun CategoryListContent(
 
                         Spacer(modifier = Modifier.size(8.dp))
                         if (addAutoRepeatType.value == "WEEKLY") {
-                            // Day of week dropdown
-                            val days = listOf("Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật")
-                            Column {
-                                ExpenseTextView(text = "Chọn ngày trong tuần")
-                                days.forEachIndexed { idx, label ->
-                                    Button(onClick = { addAutoDayOfWeek.value = idx + 1 }) {
-                                        ExpenseTextView(text = if (addAutoDayOfWeek.value == idx + 1) "$label ✓" else label)
-                                    }
-                                    Spacer(modifier = Modifier.size(4.dp))
+                            // Compact single-row weekday selector: S M T W T F S
+                            val display = listOf("S", "M", "T", "W", "T", "F", "S")
+                            // Map displayed positions to stored day values (1=Monday..7=Sunday)
+                            val dayMap = listOf(7, 1, 2, 3, 4, 5, 6)
+                            Row(modifier = Modifier
+                                .horizontalScroll(addScrollState)
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                display.forEachIndexed { idx, ch ->
+                                    val dayValue = dayMap[idx]
+                                    val selected = addAutoDayOfWeek.value == dayValue
+                                    androidx.compose.material3.FilterChip(
+                                        selected = selected,
+                                        onClick = { addAutoDayOfWeek.value = if (selected) null else dayValue },
+                                        label = { androidx.compose.material3.Text(text = ch) },
+                                        modifier = Modifier.size(32.dp)
+                                    )
                                 }
                             }
                         } else {
@@ -290,12 +303,11 @@ fun CategoryListContent(
                     Spacer(modifier = Modifier.size(12.dp))
 
                     // Auto transaction section (same as Add)
-                    ExpenseTextView(text = "🔁 Giao dịch tự động", fontWeight = MaterialTheme.typography.titleLarge.fontWeight)
-                    Spacer(modifier = Modifier.size(6.dp))
+                    // Compact auto-transaction toggle (no headline)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         androidx.compose.material3.Switch(checked = editAutoEnabled.value, onCheckedChange = { editAutoEnabled.value = it })
                         Spacer(modifier = Modifier.size(8.dp))
-                        ExpenseTextView(text = "Bật giao dịch tự động")
+                        ExpenseTextView(text = "Bật chi tiêu tự động")
                     }
 
                     if (editAutoEnabled.value) {
@@ -307,7 +319,7 @@ fun CategoryListContent(
                                 val cleaned = v.filter { it.isDigit() || it == '.' }
                                 editAutoAmount.value = cleaned.toDoubleOrNull() ?: 0.0
                             },
-                            placeholder = { ExpenseTextView(text = "Số tiền") }
+                                placeholder = { ExpenseTextView(text = "Số tiền") }
                         )
 
                         Spacer(modifier = Modifier.size(8.dp))
@@ -330,31 +342,39 @@ fun CategoryListContent(
 
                         Spacer(modifier = Modifier.size(8.dp))
                         if (editAutoRepeatType.value == "WEEKLY") {
-                            val days = listOf("Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật")
-                            Column {
-                                ExpenseTextView(text = "Chọn ngày trong tuần")
-                                days.forEachIndexed { idx, label ->
-                                    Button(onClick = { editAutoDayOfWeek.value = idx + 1 }) {
-                                        ExpenseTextView(text = if (editAutoDayOfWeek.value == idx + 1) "$label ✓" else label)
-                                    }
-                                    Spacer(modifier = Modifier.size(4.dp))
+                            // Compact single-row weekday selector: S M T W T F S
+                            val display = listOf("S", "M", "T", "W", "T", "F", "S")
+                            val dayMap = listOf(7, 1, 2, 3, 4, 5, 6)
+                            Row(modifier = Modifier
+                                .horizontalScroll(editScrollState)
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                display.forEachIndexed { idx, ch ->
+                                    val dayValue = dayMap[idx]
+                                    val selected = editAutoDayOfWeek.value == dayValue
+                                    androidx.compose.material3.FilterChip(
+                                        selected = selected,
+                                        onClick = { editAutoDayOfWeek.value = if (selected) null else dayValue },
+                                        label = { androidx.compose.material3.Text(text = ch) },
+                                        modifier = Modifier.size(32.dp)
+                                    )
                                 }
                             }
                         } else {
-                            androidx.compose.material3.OutlinedTextField(
-                                value = editAutoDayOfMonth.value?.toString() ?: "",
-                                onValueChange = { v ->
-                                    val cleaned = v.filter { it.isDigit() }
-                                    val iv = cleaned.toIntOrNull()
-                                    if (iv != null && iv in 1..28) editAutoDayOfMonth.value = iv
-                                },
-                                placeholder = { ExpenseTextView(text = "Ngày trong tháng (1-28)") }
-                            )
-                        }
+                             androidx.compose.material3.OutlinedTextField(
+                                 value = editAutoDayOfMonth.value?.toString() ?: "",
+                                 onValueChange = { v ->
+                                     val cleaned = v.filter { it.isDigit() }
+                                     val iv = cleaned.toIntOrNull()
+                                     if (iv != null && iv in 1..28) editAutoDayOfMonth.value = iv
+                                 },
+                                 placeholder = { ExpenseTextView(text = "Ngày trong tháng (1-28)") }
+                             )
+                         }
 
                         Spacer(modifier = Modifier.size(8.dp))
                         ExpenseTextView(text = "Giao dịch sẽ tự động tạo theo lịch. Bạn vẫn có thể nhập giao dịch thủ công.")
-                    }
+                     }
                 }
             }
         )
