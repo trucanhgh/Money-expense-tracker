@@ -59,10 +59,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon as MIcon
 import com.codewithfk.expensetracker.android.feature.notification.NotificationViewModel
-import androidx.compose.runtime.collectAsState
 import com.codewithfk.expensetracker.android.data.model.NotificationEntity
 
 @Composable
@@ -129,38 +129,63 @@ fun HomeContent(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Bell with badge overlay
-                    Box(modifier = Modifier) {
-                        IconButton(onClick = { showNotifications = true }) {
-                            Icon(painter = painterResource(id = R.drawable.ic_notification), contentDescription = "Thông báo", tint = Color.Black)
+                    // Use fixed-size containers so clicks / ripples don't change layout
+                    var expandedMenu by remember { mutableStateOf(false) }
+
+                    // Bell with badge overlay: fixed 48.dp touch target
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        IconButton(
+                            onClick = { showNotifications = true },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Notifications,
+                                contentDescription = "Thông báo",
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
+
                         if (unreadCount > 0) {
-                            // small circular badge positioned at the top-end of the bell
+                            // Badge: fixed size, positioned relative to the 48.dp box so it won't cause layout shifts.
+                            // Use align + padding instead of Modifier.offset to avoid needing the offset import.
                             Box(
                                 modifier = Modifier
                                     .size(16.dp)
-                                    .background(color = Color.Red, shape = CircleShape)
-                                    .align(Alignment.TopEnd),
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 2.dp, end = 2.dp)
+                                    .background(color = Color.Red, shape = CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                androidx.compose.material3.Text(text = if (unreadCount > 9) "9+" else unreadCount.toString(), color = Color.White, fontSize = 10.sp)
+                                androidx.compose.material3.Text(
+                                    text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp
+                                )
                             }
                         }
                     }
 
-                    // Overflow menu icon (only "Đăng xuất")
-                    var expandedMenu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = "Thêm tùy chọn", tint = Color.Black)
-                    }
-                    DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
-                        DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
-                            expandedMenu = false
-                            onLogoutClicked()
-                        })
+                    // Overflow menu icon: fixed 48.dp touch target to match bell
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        IconButton(onClick = { expandedMenu = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "Thêm tùy chọn",
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
+                            DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
+                                expandedMenu = false
+                                onLogoutClicked()
+                            })
+                        }
                     }
                 }
             }
