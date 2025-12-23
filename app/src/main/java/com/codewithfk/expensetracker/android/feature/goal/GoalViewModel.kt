@@ -11,13 +11,15 @@ import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import com.codewithfk.expensetracker.android.data.repository.NotificationRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class GoalViewModel @Inject constructor(
     private val goalDao: GoalDao,
     private val expenseDao: ExpenseDao,
-    private val currentUserProvider: CurrentUserProvider
+    private val currentUserProvider: CurrentUserProvider,
+    private val notificationRepository: NotificationRepository
 ) : BaseViewModel() {
 
     private val userId: String = currentUserProvider.getUserId() ?: ""
@@ -33,6 +35,16 @@ class GoalViewModel @Inject constructor(
             val trimmed = goal.name.trim()
             if (trimmed.isNotEmpty()) {
                 goalDao.insertGoal(GoalEntity(name = trimmed, targetAmount = goal.targetAmount, frequency = goal.frequency, reminderEnabled = goal.reminderEnabled, ownerId = userId))
+                // notify
+                try {
+                    notificationRepository.insertNotification(
+                        title = "Quỹ mới được tạo",
+                        message = "Quỹ \"$trimmed\" đã được tạo thành công.",
+                        timestamp = System.currentTimeMillis(),
+                        type = "GOAL_CREATED"
+                    )
+                } catch (_: Throwable) {
+                }
             }
         }
     }

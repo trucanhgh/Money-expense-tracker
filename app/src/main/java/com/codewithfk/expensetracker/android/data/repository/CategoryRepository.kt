@@ -5,6 +5,8 @@ import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
+import com.codewithfk.expensetracker.android.data.repository.NotificationRepository
+import com.codewithfk.expensetracker.android.utils.Utils
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -17,6 +19,7 @@ class CategoryRepository @Inject constructor(
     private val categoryDao: CategoryDao,
     private val expenseDao: ExpenseDao,
     private val currentUserProvider: CurrentUserProvider
+    , private val notificationRepository: NotificationRepository
 ) {
     private val userId: String = currentUserProvider.getUserId() ?: ""
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -135,6 +138,20 @@ class CategoryRepository @Inject constructor(
                         lastAutoExecutedDate = todayStr
                     )
                     categoryDao.updateCategory(updated)
+
+                    // Create notification about auto transaction
+                    try {
+                        val amt = Utils.formatCurrency(cat.autoAmount)
+                        val title = if (cat.autoType.equals("Income", ignoreCase = true)) "Thu nhập tự động" else "Chi tiêu tự động"
+                        val message = if (cat.autoType.equals("Income", ignoreCase = true)) {
+                            "Đã tự động ghi nhận thu nhập $amt cho danh mục ${cat.name}."
+                        } else {
+                            "Đã tự động ghi nhận chi tiêu $amt cho danh mục ${cat.name}."
+                        }
+                        notificationRepository.insertNotification(title = title, message = message, timestamp = System.currentTimeMillis(), type = "AUTO_TRANSACTION")
+                    } catch (_: Throwable) {
+                        // ignore notification failures
+                    }
                 }
             } catch (t: Throwable) {
                 // ignore individual category failures to keep processing other categories

@@ -9,6 +9,7 @@ import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.CategorySummary
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
+import com.codewithfk.expensetracker.android.data.repository.NotificationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -18,7 +19,8 @@ import javax.inject.Inject
 class CategoryViewModel @Inject constructor(
     private val categoryDao: CategoryDao,
     private val expenseDao: ExpenseDao,
-    private val currentUserProvider: CurrentUserProvider
+    private val currentUserProvider: CurrentUserProvider,
+    private val notificationRepository: NotificationRepository
 ) : BaseViewModel() {
 
     private val userId: String = currentUserProvider.getUserId() ?: ""
@@ -50,6 +52,17 @@ class CategoryViewModel @Inject constructor(
                     lastAutoExecutedDate = category.lastAutoExecutedDate
                 )
                 categoryDao.insertCategory(toInsert)
+                // create notification: category created
+                try {
+                    notificationRepository.insertNotification(
+                        title = "Danh mục mới",
+                        message = "Danh mục \"${toInsert.name}\" đã được tạo thành công.",
+                        timestamp = System.currentTimeMillis(),
+                        type = "CATEGORY_CREATED"
+                    )
+                } catch (_: Throwable) {
+                    // ignore
+                }
             }
         }
     }

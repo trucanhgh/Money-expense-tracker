@@ -53,6 +53,17 @@ import com.codewithfk.expensetracker.android.utils.Utils
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Icon as MIcon
+import com.codewithfk.expensetracker.android.feature.notification.NotificationViewModel
+import androidx.compose.runtime.collectAsState
+import com.codewithfk.expensetracker.android.data.model.NotificationEntity
 
 @Composable
 fun HomeContent(
@@ -60,10 +71,22 @@ fun HomeContent(
     onSeeAllClicked: () -> Unit,
     onAddExpenseClicked: () -> Unit,
     onAddIncomeClicked: () -> Unit,
-    onSettingsClicked: () -> Unit,
     onLogoutClicked: () -> Unit
 ) {
     val appUi = LocalAppUi.current
+
+    // Use NotificationViewModel (Hilt) to observe real notifications
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val notifications by notificationViewModel.notifications.collectAsState()
+    val unreadCount by notificationViewModel.unreadCount.collectAsState(initial = 0)
+    var showNotifications by remember { mutableStateOf(false) }
+
+    // When opening the notifications popup, mark all as read
+    LaunchedEffect(showNotifications) {
+        if (showNotifications) {
+            notificationViewModel.markAllRead()
+        }
+    }
 
     // Resolve topBar colors: prefer values from LocalAppUi but fall back to the requested hexes
     // Use the requested color B6BBC4 as the fallback top bar color
@@ -101,25 +124,46 @@ fun HomeContent(
                         color = Color.White
                     )
                 }
-                // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                // top-right menu (Chỉ còn: Đăng xuất)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bell with badge overlay
+                    Box(modifier = Modifier) {
+                        IconButton(onClick = { showNotifications = true }) {
+                            Icon(painter = painterResource(id = R.drawable.ic_notification), contentDescription = "Thông báo", tint = Color.Black)
+                        }
+                        if (unreadCount > 0) {
+                            // small circular badge positioned at the top-end of the bell
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .background(color = Color.Red, shape = CircleShape)
+                                    .align(Alignment.TopEnd),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.material3.Text(text = if (unreadCount > 9) "9+" else unreadCount.toString(), color = Color.White, fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    // Overflow menu icon (only "Đăng xuất")
                     var expandedMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = Color.Black)
+                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = "Thêm tùy chọn", tint = Color.Black)
                     }
                     DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
-                       DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
-                           expandedMenu = false
-                           // navigate to settings/color picker
-                           onSettingsClicked()
-                       })
-                       DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
-                           expandedMenu = false
-                           onLogoutClicked()
-                       })
-                   }
-               }
-           }
+                        DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
+                            expandedMenu = false
+                            onLogoutClicked()
+                        })
+                    }
+                }
+            }
 
             val expenseTotal = expenses
             val expense = "" + Utils.formatCurrency(expenseTotal.filter { it.type != "Income" }.sumOf { it.amount })
@@ -162,6 +206,59 @@ fun HomeContent(
                 }, {
                     onAddIncomeClicked()
                 }, fabTint = appUi.fabIconTint)
+            }
+        }
+    }
+
+    // Notification popup dialog (Dialog ensures it won't exceed screen height and allows custom scrollable content)
+    if (showNotifications) {
+        // Large dialog (near full width, 65% screen height) with X close icon
+        val config = LocalConfiguration.current
+        val screenHeightDp = config.screenHeightDp
+        val dialogHeight = (screenHeightDp * 0.65).dp
+
+        Dialog(onDismissRequest = { showNotifications = false }) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = dialogHeight, max = dialogHeight)
+                    .padding(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        ExpenseTextView(text = "Thông báo", style = Typography.titleLarge, color = Color.Black)
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = { showNotifications = false }) {
+                            MIcon(imageVector = Icons.Default.Close, contentDescription = "Đóng")
+                        }
+                    }
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)))
+                    Spacer(modifier = Modifier.size(8.dp))
+
+                    if (notifications.isEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            ExpenseTextView(text = "Không có thông báo")
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                            items(items = notifications, key = { it.id ?: 0 }) { n: NotificationEntity ->
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                    ExpenseTextView(text = n.title, style = Typography.bodyLarge, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    ExpenseTextView(text = n.message, style = Typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    ExpenseTextView(text = Utils.formatDateToHumanReadableForm(n.timestamp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -439,7 +536,6 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         onSeeAllClicked = { viewModel.onEvent(HomeUiEvent.OnSeeAllClicked) },
         onAddExpenseClicked = { viewModel.onEvent(HomeUiEvent.OnAddExpenseClicked) },
         onAddIncomeClicked = { viewModel.onEvent(HomeUiEvent.OnAddIncomeClicked) },
-        onSettingsClicked = { navController.navigate("/settings") },
         onLogoutClicked = {
             authViewModel.clearRemember()
             navController.navigate("/login") {
@@ -463,7 +559,6 @@ fun PreviewHomeContent() {
             onSeeAllClicked = {},
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
-            onSettingsClicked = {},
             onLogoutClicked = {}
         )
     }
@@ -483,7 +578,6 @@ fun PreviewHomeContentDark() {
             onSeeAllClicked = {},
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
-            onSettingsClicked = {},
             onLogoutClicked = {}
         )
     }
