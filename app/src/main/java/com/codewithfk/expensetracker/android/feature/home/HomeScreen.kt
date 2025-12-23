@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon as MIcon
 import com.codewithfk.expensetracker.android.feature.notification.NotificationViewModel
 import com.codewithfk.expensetracker.android.data.model.NotificationEntity
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 
 @Composable
 fun HomeContent(
@@ -465,52 +466,32 @@ fun TransactionList(
             key = { item -> item.id ?: 0 }) { item ->
              val amount = if (item.type == "Income") item.amount else item.amount * -1
 
-             TransactionItem(
+             // Use shared TransactionItemRow and pass isIncome explicitly
+             TransactionItemRow(
                  title = item.title,
                  amount = Utils.formatCurrency(amount),
                  date = Utils.formatStringDateToMonthDayYear(item.date),
-                 color = if (item.type == "Income") MaterialTheme.colorScheme.secondary else Red,
-                 Modifier
+                 isIncome = item.type == "Income",
+                 modifier = Modifier
              )
-         }
-    }
-}
+          }
+     }
+ }
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun TransactionItem(
-    title: String,
-    amount: String,
-    date: String,
-    color: Color,
-    modifier: Modifier
-) {
-
-    // Fixed light-mode title color
-    val transactionTitleColor = Color.Black
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.size(8.dp))
-            Column {
-                ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = transactionTitleColor)
-                Spacer(modifier = Modifier.size(6.dp))
-                ExpenseTextView(text = date, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-            }
-        }
-        ExpenseTextView(
-            text = amount,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.align(Alignment.CenterEnd),
-            color = color
-        )
-    }
-}
+     title: String,
+     amount: String,
+     date: String,
+     color: Color,
+     modifier: Modifier
+ ) {
+    // Backwards-compatible wrapper that delegates to the shared TransactionItemRow.
+    // Heuristic: treat non-Red color as income (kept for compatibility if callers pass explicit color).
+    val isIncome = color != Red
+    TransactionItemRow(title = title, amount = amount, date = date, isIncome = isIncome, modifier = modifier)
+ }
 
 @Composable
 fun CardRowItem(modifier: Modifier, title: String, amount: String, imaget: Int) {

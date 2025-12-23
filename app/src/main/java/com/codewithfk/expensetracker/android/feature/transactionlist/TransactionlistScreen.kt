@@ -35,9 +35,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.feature.add_expense.ExpenseDropDown
-import com.codewithfk.expensetracker.android.feature.home.TransactionItem
 import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
@@ -146,12 +146,12 @@ fun TransactionListContentBase(
             ) {
                 items(expenses) { item ->
                     val amount = if (item.type == "Income") item.amount else -item.amount
-                    TransactionItem(
+                    TransactionItemRow(
                         title = item.title,
                         amount = Utils.formatCurrency(amount),
                         date = Utils.formatStringDateToMonthDayYear(item.date),
-                        color = if (item.type == "Income") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                        Modifier
+                        isIncome = item.type == "Income",
+                        modifier = Modifier
                     )
                 }
             }

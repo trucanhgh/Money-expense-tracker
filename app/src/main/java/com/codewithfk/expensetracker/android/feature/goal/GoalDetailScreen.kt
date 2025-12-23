@@ -22,6 +22,7 @@ import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,14 +134,16 @@ fun GoalDetailContent(
                     // show newest transactions first
                     val sortedContributions = contributions.sortedByDescending { Utils.getMillisFromDate(it.date) }
                     sortedContributions.forEach { e ->
-                        Row(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            ExpenseTextView(text = e.title, color = Color.Black)
-                            // Show positive amount for contributions (Expense), negative for withdrawals (Income)
-                            val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
-                            ExpenseTextView(text = amountDisplay)
-                        }
+                        // Keep the previous domain-specific sign behavior: contributions (Expense) shown positive,
+                        // withdrawals (Income) shown negative. Styling (font, spacing, color) is unified via TransactionItemRow.
+                        val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
+                        TransactionItemRow(
+                            title = e.title,
+                            amount = amountDisplay,
+                            date = Utils.formatStringDateToMonthDayYear(e.date),
+                            isIncome = e.type == "Income",
+                            modifier = Modifier
+                        )
                     }
                 }
             }
