@@ -115,9 +115,15 @@ fun GoalDetailContent(
                 // List of contributions
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     ExpenseTextView(text = "Giao dịch", color = Color.Black)
-                    Button(onClick = { onOpenTransactions(name) }) {
-                        ExpenseTextView(text = "Xem chi tiết")
-                    }
+                    // Plain clickable text instead of a bordered Button (link style)
+                    Text(
+                        text = "Xem chi tiết",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .clickable { onOpenTransactions(name) }
+                            .padding(4.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.size(8.dp))
 

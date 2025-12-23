@@ -447,81 +447,82 @@ fun CategoryListScreen(navController: NavController, viewModel: CategoryViewMode
     val categoriesFlow = viewModel.categories
 
     CategoryListContent(
-        getCategoryTotals = totalsFlowProvider,
-        categoriesFlow = categoriesFlow,
-        onOpenCategory = { name ->
+         getCategoryTotals = totalsFlowProvider,
+         categoriesFlow = categoriesFlow,
+         onOpenCategory = { name ->
             val encoded = Uri.encode(name)
-            navController.navigate("/category_detail/$encoded")
-        },
-        onInsertCategory = { category -> viewModel.insertCategory(category) },
-        onUpdateCategory = { category -> viewModel.updateCategory(category) },
-        onDeleteCategory = { id ->
-            // find entity by id and call viewModel.deleteCategory
-            // safe: lookup by id via categoriesFlow not available here synchronously; call delete by constructing entity with id
-            viewModel.deleteCategory(CategoryEntity(id = id, name = ""))
-        }
-    )
-}
+            // Navigate directly to the shared Transaction screen with a category filter
+            navController.navigate("/all_transactions/category/$encoded")
+         },
+         onInsertCategory = { category -> viewModel.insertCategory(category) },
+         onUpdateCategory = { category -> viewModel.updateCategory(category) },
+         onDeleteCategory = { id ->
+             // find entity by id and call viewModel.deleteCategory
+             // safe: lookup by id via categoriesFlow not available here synchronously; call delete by constructing entity with id
+             viewModel.deleteCategory(CategoryEntity(id = id, name = ""))
+         }
+     )
+ }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewCategoryListContent() {
-    val sampleTotals = listOf(
-        CategorySummary(id = 1, name = "Ăn uống", total = -120000.0),
-        CategorySummary(id = 2, name = "Thu nhập", total = 500000.0)
-    )
-    val sampleEntities = listOf(
-        CategoryEntity(id = 1, name = "Ăn uống"),
-        CategoryEntity(id = 2, name = "Thu nhập")
-    )
+ @Preview(showBackground = true)
+ @Composable
+ fun PreviewCategoryListContent() {
+     val sampleTotals = listOf(
+         CategorySummary(id = 1, name = "Ăn uống", total = -120000.0),
+         CategorySummary(id = 2, name = "Thu nhập", total = 500000.0)
+     )
+     val sampleEntities = listOf(
+         CategoryEntity(id = 1, name = "Ăn uống"),
+         CategoryEntity(id = 2, name = "Thu nhập")
+     )
 
-    ExpenseTrackerAndroidTheme {
-        CategoryListContent(
-            getCategoryTotals = { _ -> flowOf(sampleTotals) },
-            categoriesFlow = flowOf(sampleEntities),
-            onOpenCategory = {},
-            onInsertCategory = {},
-            onUpdateCategory = { },
-            onDeleteCategory = {}
-        )
-    }
-}
+     ExpenseTrackerAndroidTheme {
+         CategoryListContent(
+             getCategoryTotals = { _ -> flowOf(sampleTotals) },
+             categoriesFlow = flowOf(sampleEntities),
+             onOpenCategory = {},
+             onInsertCategory = {},
+             onUpdateCategory = { },
+             onDeleteCategory = {}
+         )
+     }
+ }
 
-// WeekdayChip implementation (kept at bottom of file or near other helpers)
-@Composable
-private fun WeekdayChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    size: Dp = 34.dp,
-    shape: Shape = RoundedCornerShape(6.dp),
-    textSize: TextUnit = 12.sp
-) {
-    val bgColor = if (selected) Color(0xFFE0E0E0) else Color.Transparent
-    val borderColor = if (selected) Color.Transparent else Color(0xFFBDBDBD)
+ // WeekdayChip implementation (kept at bottom of file or near other helpers)
+ @Composable
+ private fun WeekdayChip(
+     label: String,
+     selected: Boolean,
+     onClick: () -> Unit,
+     size: Dp = 34.dp,
+     shape: Shape = RoundedCornerShape(6.dp),
+     textSize: TextUnit = 12.sp
+ ) {
+     val bgColor = if (selected) Color(0xFFE0E0E0) else Color.Transparent
+     val borderColor = if (selected) Color.Transparent else Color(0xFFBDBDBD)
 
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(shape)
-            .background(bgColor)
-            .then(if (!selected) Modifier.border(width = 1.dp, color = borderColor, shape = shape) else Modifier)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            fontSize = textSize,
-            color = Color.Black,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
+     Box(
+         modifier = Modifier
+             .size(size)
+             .clip(shape)
+             .background(bgColor)
+             .then(if (!selected) Modifier.border(width = 1.dp, color = borderColor, shape = shape) else Modifier)
+             .clickable(onClick = onClick),
+         contentAlignment = Alignment.Center
+     ) {
+         Text(
+             text = label,
+             fontSize = textSize,
+             color = Color.Black,
+             textAlign = TextAlign.Center,
+             fontWeight = FontWeight.Medium
+         )
+     }
+ }
 
-fun getCurrentMonthString(): String {
-    val cal = Calendar.getInstance()
-    val month = cal.get(Calendar.MONTH) + 1
-    val year = cal.get(Calendar.YEAR)
-    return String.format(Locale.getDefault(), "%02d/%d", month, year)
-}
+ fun getCurrentMonthString(): String {
+     val cal = Calendar.getInstance()
+     val month = cal.get(Calendar.MONTH) + 1
+     val year = cal.get(Calendar.YEAR)
+     return String.format(Locale.getDefault(), "%02d/%d", month, year)
+ }

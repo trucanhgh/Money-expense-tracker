@@ -126,10 +126,12 @@ fun NavHostScreen() {
                 CategoryListScreen(navController)
             }
 
+            // Keep backward-compatible route but reuse the shared Transaction screen
+            // so the intermediate CategoryDetailScreen is effectively removed.
             composable(route = "/category_detail/{name}") { backStackEntry ->
                 bottomBarVisibility = true
-                val name = backStackEntry.arguments?.getString("name")
-                CategoryDetailScreen(navController, name)
+                val name = backStackEntry.arguments?.getString("name")?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                TransactionListScreen(navController, categoryName = name)
             }
 
             // Goals
