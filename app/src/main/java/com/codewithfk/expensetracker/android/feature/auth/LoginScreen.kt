@@ -114,7 +114,7 @@ fun LoginContent(
 
                 Spacer(modifier = Modifier.size(12.dp))
                 showMessage?.let { msg ->
-                    ExpenseTextView(text = msg)
+                    ExpenseTextView(text = msg, color = Color.Black)
                 }
 
                 // Small '\u0110\u0103ng k\u00fd' link at the bottom-right

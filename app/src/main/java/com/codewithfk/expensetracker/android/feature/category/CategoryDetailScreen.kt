@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -25,6 +26,8 @@ import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun CategoryDetailContent(
@@ -65,7 +68,11 @@ fun CategoryDetailContent(
     Scaffold(topBar = {}) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ExpenseTextView(text = name, color = Color.Black)
+                // Header label (larger & bold) and the actual name (smaller, not bold)
+                ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
+                Spacer(modifier = Modifier.size(6.dp))
+                // Actual category name: smaller and not bold (single-line with ellipsis)
+                ExpenseTextView(text = name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.size(8.dp))
 
                 // Filter button opens inline filter panel

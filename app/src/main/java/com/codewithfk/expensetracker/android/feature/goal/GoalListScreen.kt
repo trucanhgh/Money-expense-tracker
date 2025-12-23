@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -101,35 +103,42 @@ fun GoalListContent(
                                 .padding(vertical = 8.dp)
                                 .height(160.dp),
                             shape = RoundedCornerShape(16.dp),
+                            // Set the goal card background to the requested light grey
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEEEEEE)),
                         ) {
                             // Use a column to place title at top, then the progress pill one row lower
                             Column(modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    onOpenGoal(g.name)
-                                }
                                 .padding(16.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                                    // Top-left: goal name
-                                    ExpenseTextView(text = g.name, style = MaterialTheme.typography.titleLarge, maxLines = 1, color = Color.Black)
+                                    // Top-left: goal name (only the name is clickable to open details)
+                                    ExpenseTextView(
+                                        text = g.name,
+                                        modifier = Modifier.weight(1f).clickable { onOpenGoal(g.name) },
+                                        style = MaterialTheme.typography.titleLarge,
+                                        maxLines = 1,
+                                        color = Color.Black
+                                    )
 
-                                    // Top-right: overflow menu ("...")
+                                    // Top-right: overflow menu ("...") placed inside a Box so the DropdownMenu overlays and doesn't shift layout
                                     var menuExpanded by remember { mutableStateOf(false) }
-                                    IconButton(onClick = { menuExpanded = true }) {
-                                        Icon(painter = painterResource(id = R.drawable.dots_menu) , contentDescription = "Menu", tint = androidx.compose.ui.graphics.Color.Black)
-                                    }
-                                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                                        DropdownMenuItem(text = { Text("Đổi tên") }, onClick = {
-                                             menuExpanded = false
-                                             editingGoalId.value = g.id
-                                             editGoalName.value = g.name
-                                             showEditDialog.value = true
-                                        })
-                                        DropdownMenuItem(text = { Text("Xóa") }, onClick = {
-                                            menuExpanded = false
-                                            deletingGoalId.value = g.id
-                                            showDeleteDialog.value = true
-                                        })
+                                    Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                                        IconButton(onClick = { menuExpanded = true }) {
+                                            Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = "Menu", tint = androidx.compose.ui.graphics.Color.Black)
+                                        }
+                                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                            DropdownMenuItem(text = { Text("Đổi tên") }, onClick = {
+                                                menuExpanded = false
+                                                editingGoalId.value = g.id
+                                                editGoalName.value = g.name
+                                                showEditDialog.value = true
+                                            })
+                                            DropdownMenuItem(text = { Text("Xóa") }, onClick = {
+                                                menuExpanded = false
+                                                deletingGoalId.value = g.id
+                                                showDeleteDialog.value = true
+                                            })
+                                        }
                                     }
                                 }
 
