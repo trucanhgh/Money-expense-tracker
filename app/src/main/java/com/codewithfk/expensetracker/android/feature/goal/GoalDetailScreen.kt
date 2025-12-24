@@ -57,19 +57,28 @@ fun GoalDetailContent(
     val dateMillis = remember { mutableStateOf<Long?>(null) }
     val datePickerVisible = remember { mutableStateOf(false) }
 
-    Scaffold(topBar = {
-        TopBarWithBack(
-            title = { ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
-            onBack = onBack
-        )
-    }) { padding ->
+    // Use Scaffold without topBar and render TopBarWithBack inside the Column so header vertical spacing matches StatsScreen
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Header label (larger & bold) and the actual name (smaller, not bold)
-                ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
-                Spacer(modifier = Modifier.size(6.dp))
-                // Actual goal name: smaller and not bold (single-line with ellipsis for long names)
-                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // Shared top bar with back button (keeps pop behavior)
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+                    onBack = onBack
+                )
+
+                Spacer(modifier = Modifier.size(8.dp))
+
+                // Prominent goal name: show the actual goal name as the main title below the header
+                ExpenseTextView(
+                    text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
                 Spacer(modifier = Modifier.size(12.dp))
 
                 // Goal card
