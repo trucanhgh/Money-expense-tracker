@@ -53,6 +53,18 @@ import com.codewithfk.expensetracker.android.utils.Utils
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Icon as MIcon
+import com.codewithfk.expensetracker.android.feature.notification.NotificationViewModel
+import com.codewithfk.expensetracker.android.data.model.NotificationEntity
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 
 @Composable
 fun HomeContent(
@@ -60,10 +72,22 @@ fun HomeContent(
     onSeeAllClicked: () -> Unit,
     onAddExpenseClicked: () -> Unit,
     onAddIncomeClicked: () -> Unit,
-    onSettingsClicked: () -> Unit,
     onLogoutClicked: () -> Unit
 ) {
     val appUi = LocalAppUi.current
+
+    // Use NotificationViewModel (Hilt) to observe real notifications
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val notifications by notificationViewModel.notifications.collectAsState()
+    val unreadCount by notificationViewModel.unreadCount.collectAsState(initial = 0)
+    var showNotifications by remember { mutableStateOf(false) }
+
+    // When opening the notifications popup, mark all as read
+    LaunchedEffect(showNotifications) {
+        if (showNotifications) {
+            notificationViewModel.markAllRead()
+        }
+    }
 
     // Resolve topBar colors: prefer values from LocalAppUi but fall back to the requested hexes
     // Use the requested color B6BBC4 as the fallback top bar color
@@ -101,25 +125,71 @@ fun HomeContent(
                         color = Color.White
                     )
                 }
-                // top-right menu (Chỉ còn: Thay đổi màu sáng / Đăng xuất)
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                // top-right menu (Chỉ còn: Đăng xuất)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Use fixed-size containers so clicks / ripples don't change layout
                     var expandedMenu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { expandedMenu = true }) {
-                        Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = Color.Black)
+
+                    // Bell with badge overlay: fixed 48.dp touch target
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        IconButton(
+                            onClick = { showNotifications = true },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Notifications,
+                                contentDescription = "Thông báo",
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        if (unreadCount > 0) {
+                            // Badge: fixed size, positioned relative to the 48.dp box so it won't cause layout shifts.
+                            // Use align + padding instead of Modifier.offset to avoid needing the offset import.
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 2.dp, end = 2.dp)
+                                    .background(color = Color.Red, shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.material3.Text(
+                                    text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                    color = Color.White,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     }
-                    DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
-                       DropdownMenuItem(text = { ExpenseTextView(text = "Thay đổi màu sáng") }, onClick = {
-                           expandedMenu = false
-                           // navigate to settings/color picker
-                           onSettingsClicked()
-                       })
-                       DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
-                           expandedMenu = false
-                           onLogoutClicked()
-                       })
-                   }
-               }
-           }
+
+                    // Overflow menu icon: fixed 48.dp touch target to match bell
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        IconButton(onClick = { expandedMenu = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "Thêm tùy chọn",
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        DropdownMenu(expanded = expandedMenu, onDismissRequest = { expandedMenu = false }) {
+                            DropdownMenuItem(text = { ExpenseTextView(text = "Đăng xuất") }, onClick = {
+                                expandedMenu = false
+                                onLogoutClicked()
+                            })
+                        }
+                    }
+                }
+            }
 
             val expenseTotal = expenses
             val expense = "" + Utils.formatCurrency(expenseTotal.filter { it.type != "Income" }.sumOf { it.amount })
@@ -162,6 +232,59 @@ fun HomeContent(
                 }, {
                     onAddIncomeClicked()
                 }, fabTint = appUi.fabIconTint)
+            }
+        }
+    }
+
+    // Notification popup dialog (Dialog ensures it won't exceed screen height and allows custom scrollable content)
+    if (showNotifications) {
+        // Large dialog (near full width, 65% screen height) with X close icon
+        val config = LocalConfiguration.current
+        val screenHeightDp = config.screenHeightDp
+        val dialogHeight = (screenHeightDp * 0.65).dp
+
+        Dialog(onDismissRequest = { showNotifications = false }) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = dialogHeight, max = dialogHeight)
+                    .padding(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        ExpenseTextView(text = "Thông báo", style = Typography.titleLarge, color = Color.Black)
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = { showNotifications = false }) {
+                            MIcon(imageVector = Icons.Default.Close, contentDescription = "Đóng")
+                        }
+                    }
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)))
+                    Spacer(modifier = Modifier.size(8.dp))
+
+                    if (notifications.isEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            ExpenseTextView(text = "Không có thông báo")
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                            items(items = notifications, key = { it.id ?: 0 }) { n: NotificationEntity ->
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                    ExpenseTextView(text = n.title, style = Typography.bodyLarge, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    ExpenseTextView(text = n.message, style = Typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    ExpenseTextView(text = Utils.formatDateToHumanReadableForm(n.timestamp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -308,8 +431,8 @@ fun TransactionList(
     title: String = "Giao dịch gần đây",
     onSeeAllClicked: () -> Unit
 ) {
-    // Always display newest transactions at top. Dates are stored as dd/MM/yyyy strings; convert to millis to sort.
-    val sorted = list.sortedByDescending { Utils.getMillisFromDate(it.date) }
+    // Always display newest transactions at top. Use the exact creation timestamp for deterministic ordering.
+    val sorted = list.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
 
     // Use fixed light-mode colors (no dark/light switching)
     val sectionTitleColor = Color.Black
@@ -343,52 +466,32 @@ fun TransactionList(
             key = { item -> item.id ?: 0 }) { item ->
              val amount = if (item.type == "Income") item.amount else item.amount * -1
 
-             TransactionItem(
+             // Use shared TransactionItemRow and pass isIncome explicitly
+             TransactionItemRow(
                  title = item.title,
                  amount = Utils.formatCurrency(amount),
                  date = Utils.formatStringDateToMonthDayYear(item.date),
-                 color = if (item.type == "Income") MaterialTheme.colorScheme.secondary else Red,
-                 Modifier
+                 isIncome = item.type == "Income",
+                 modifier = Modifier
              )
-         }
-    }
-}
+          }
+     }
+ }
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun TransactionItem(
-    title: String,
-    amount: String,
-    date: String,
-    color: Color,
-    modifier: Modifier
-) {
-
-    // Fixed light-mode title color
-    val transactionTitleColor = Color.Black
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.size(8.dp))
-            Column {
-                ExpenseTextView(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = transactionTitleColor)
-                Spacer(modifier = Modifier.size(6.dp))
-                ExpenseTextView(text = date, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-            }
-        }
-        ExpenseTextView(
-            text = amount,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.align(Alignment.CenterEnd),
-            color = color
-        )
-    }
-}
+     title: String,
+     amount: String,
+     date: String,
+     color: Color,
+     modifier: Modifier
+ ) {
+    // Backwards-compatible wrapper that delegates to the shared TransactionItemRow.
+    // Heuristic: treat non-Red color as income (kept for compatibility if callers pass explicit color).
+    val isIncome = color != Red
+    TransactionItemRow(title = title, amount = amount, date = date, isIncome = isIncome, modifier = modifier)
+ }
 
 @Composable
 fun CardRowItem(modifier: Modifier, title: String, amount: String, imaget: Int) {
@@ -439,7 +542,6 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         onSeeAllClicked = { viewModel.onEvent(HomeUiEvent.OnSeeAllClicked) },
         onAddExpenseClicked = { viewModel.onEvent(HomeUiEvent.OnAddExpenseClicked) },
         onAddIncomeClicked = { viewModel.onEvent(HomeUiEvent.OnAddIncomeClicked) },
-        onSettingsClicked = { navController.navigate("/settings") },
         onLogoutClicked = {
             authViewModel.clearRemember()
             navController.navigate("/login") {
@@ -463,7 +565,6 @@ fun PreviewHomeContent() {
             onSeeAllClicked = {},
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
-            onSettingsClicked = {},
             onLogoutClicked = {}
         )
     }
@@ -483,7 +584,6 @@ fun PreviewHomeContentDark() {
             onSeeAllClicked = {},
             onAddExpenseClicked = {},
             onAddIncomeClicked = {},
-            onSettingsClicked = {},
             onLogoutClicked = {}
         )
     }

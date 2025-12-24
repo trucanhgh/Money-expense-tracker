@@ -6,6 +6,7 @@ import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
 import com.codewithfk.expensetracker.android.data.dao.CategoryDao
 import com.codewithfk.expensetracker.android.data.dao.UserDao
 import com.codewithfk.expensetracker.android.data.dao.GoalDao
+import com.codewithfk.expensetracker.android.data.dao.NotificationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,5 +42,10 @@ object DatabaseModule {
     @Provides
     fun provideGoalDao(database: ExpenseDatabase): GoalDao {
         return database.goalDao()
+    }
+
+    @Provides
+    fun provideNotificationDao(database: ExpenseDatabase): NotificationDao {
+        return database.notificationDao()
     }
 }

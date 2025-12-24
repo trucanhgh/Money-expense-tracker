@@ -47,9 +47,13 @@ import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 /**
  * Stateless UI for Goal List. Accepts data and callbacks. It may call getContributionsForGoal to collect flows.
@@ -61,10 +65,12 @@ fun GoalListContent(
     onCreateGoal: (name: String, target: Double) -> Unit,
     onOpenGoal: (name: String) -> Unit,
     onUpdateGoal: (goal: GoalEntity) -> Unit,
-    onDeleteGoal: (goal: GoalEntity) -> Unit
+    onDeleteGoal: (goal: GoalEntity) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     val showAddDialog = remember { mutableStateOf(false) }
     val newName = remember { mutableStateOf("") }
+    // store digits only for target; visual transformation renders dots while typing
     val newTarget = remember { mutableStateOf("") }
 
     // edit / delete dialog state
@@ -75,11 +81,18 @@ fun GoalListContent(
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deletingGoalId = remember { mutableStateOf<Int?>(null) }
 
-    Scaffold(topBar = {}) { padding ->
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
+                // Move TopBarWithBack here so it aligns like StatsScreen
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+                    onBack = onBack
+                )
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black)
+                    // Left title handled by topBar
+                    Spacer(modifier = Modifier.size(0.dp))
                     Button(
                         onClick = { showAddDialog.value = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -120,7 +133,7 @@ fun GoalListContent(
                                         color = Color.Black
                                     )
 
-                                    // Top-right: overflow menu ("...") placed inside a Box so the DropdownMenu overlays and doesn't shift layout
+                                    // Top-right: overflow menu (unchanged)
                                     var menuExpanded by remember { mutableStateOf(false) }
                                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                                         IconButton(onClick = { menuExpanded = true }) {
@@ -176,7 +189,8 @@ fun GoalListContent(
             Button(
                 onClick = {
                     val name = newName.value.trim()
-                    val target = newTarget.value.replace(Regex("[.,\\s]"), "").toDoubleOrNull() ?: 0.0
+                    // newTarget stores digits-only already (MoneyFormatting.unformat on input).
+                    val target = newTarget.value.toDoubleOrNull() ?: 0.0
                     if (name.isNotEmpty()) {
                         onCreateGoal(name, target)
                         newName.value = ""
@@ -192,7 +206,16 @@ fun GoalListContent(
                 Spacer(modifier = Modifier.size(8.dp))
                 androidx.compose.material3.OutlinedTextField(value = newName.value, onValueChange = { newName.value = it }, placeholder = { ExpenseTextView(text = "Tên mục tiêu") })
                 Spacer(modifier = Modifier.size(8.dp))
-                androidx.compose.material3.OutlinedTextField(value = newTarget.value, onValueChange = { newTarget.value = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } }, placeholder = { ExpenseTextView(text = "Số tiền mục tiêu (VND)") })
+                androidx.compose.material3.OutlinedTextField(
+                    value = newTarget.value,
+                    onValueChange = { v ->
+                        // keep only digits in backing state
+                        newTarget.value = MoneyFormatting.unformat(v)
+                    },
+                    visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    placeholder = { ExpenseTextView(text = "Số tiền mục tiêu (VND)") }
+                )
             }
         })
     }
@@ -266,7 +289,8 @@ fun GoalListScreen(navController: NavController, viewModel: GoalViewModel = hilt
             navController.navigate("/goal_detail/$encoded")
         },
         onUpdateGoal = { goal -> viewModel.updateGoal(goal) },
-        onDeleteGoal = { goal -> viewModel.deleteGoal(goal) }
+        onDeleteGoal = { goal -> viewModel.deleteGoal(goal) },
+        onBack = { navController.popBackStack() }
     )
 }
 

@@ -1,6 +1,5 @@
 package com.codewithfk.expensetracker.android.feature.auth
 
-import android.content.res.Configuration
 // dark mode removed; always use light-mode defaults
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,9 +24,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
@@ -41,18 +40,23 @@ fun RegisterContent(
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
-    onCreateAccount: () -> Unit
+    onCreateAccount: () -> Unit,
+    onBack: () -> Unit = {}
 ) {
-    val scope = rememberCoroutineScope()
     // dark mode removed; use light defaults
     val isDark = false
-    Scaffold(topBar = {}) { padding ->
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "") },
+            onBack = onBack
+        )
+    }) { padding ->
         Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(modifier = Modifier.size(24.dp))
                 // Use black text in light theme for clearer contrast
                 ExpenseTextView(
-                    text = "\u0110\u0103ng k\u00fd",
+                    text = "Đăng ký",
                     style = MaterialTheme.typography.headlineSmall,
                     color = if (!isDark) Color.Black else MaterialTheme.colorScheme.onBackground
                 )
@@ -62,7 +66,7 @@ fun RegisterContent(
                     value = username,
                     onValueChange = onUsernameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "T\u00ean \u0111\u0103ng nh\u1eadp") }
+                    placeholder = { ExpenseTextView(text = "Tên đăng nhập") }
                 )
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -71,7 +75,7 @@ fun RegisterContent(
                     value = password,
                     onValueChange = onPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "M\u1eadt kh\u1ea9u (\u00edt nh\u1ea5t 6 k\u00fd t\u1ef1)") }
+                    placeholder = { ExpenseTextView(text = "Mật khẩu (ít nhất 6 ký tự)") }
                 )
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -80,7 +84,7 @@ fun RegisterContent(
                     value = confirmPassword,
                     onValueChange = onConfirmPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u") }
+                    placeholder = { ExpenseTextView(text = "Xác nhận mật khẩu") }
                 )
 
                 Spacer(modifier = Modifier.size(16.dp))
@@ -90,7 +94,7 @@ fun RegisterContent(
                     modifier = Modifier.fillMaxWidth(),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    ExpenseTextView(text = "T\u1ea1o t\u00e0i kho\u1ea3n")
+                    ExpenseTextView(text = "Tạo tài khoản")
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
@@ -149,7 +153,8 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                     errorMessage = "Tài khoản đã tồn tại hoặc có lỗi"
                 }
             }
-        }
+        },
+        onBack = { navController.popBackStack() }
     )
 }
 

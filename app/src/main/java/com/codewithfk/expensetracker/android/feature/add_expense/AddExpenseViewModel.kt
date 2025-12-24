@@ -12,6 +12,7 @@ import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.GoalEntity
 import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
+import com.codewithfk.expensetracker.android.data.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,12 +25,14 @@ class AddExpenseViewModel @Inject constructor(
     val dao: ExpenseDao,
     val categoryDao: CategoryDao,
     val goalDao: GoalDao,
-    private val currentUserProvider: CurrentUserProvider
+    private val currentUserProvider: CurrentUserProvider,
+    private val categoryRepository: CategoryRepository
 ) : BaseViewModel() {
 
     private val userId: String = currentUserProvider.getUserId() ?: ""
 
-    val categories: Flow<List<CategoryEntity>> = categoryDao.getAllCategories(userId)
+    // Use repository-provided Flow that excludes goal/fund categories (e.g., "Quỹ")
+    val categories: Flow<List<CategoryEntity>> = categoryRepository.getTransactionCategories()
     val goals: Flow<List<GoalEntity>> = goalDao.getAllGoals(userId)
 
     suspend fun addExpense(expenseEntity: ExpenseEntity): Boolean {

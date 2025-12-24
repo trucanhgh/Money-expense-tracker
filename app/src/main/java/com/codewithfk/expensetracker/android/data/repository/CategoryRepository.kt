@@ -1,0 +1,176 @@
+package com.codewithfk.expensetracker.android.data.repository
+
+import com.codewithfk.expensetracker.android.data.dao.CategoryDao
+import com.codewithfk.expensetracker.android.data.dao.ExpenseDao
+import com.codewithfk.expensetracker.android.data.model.ExpenseEntity
+import com.codewithfk.expensetracker.android.data.model.CategoryEntity
+import com.codewithfk.expensetracker.android.auth.CurrentUserProvider
+import com.codewithfk.expensetracker.android.utils.Utils
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+@Singleton
+class CategoryRepository @Inject constructor(
+    private val categoryDao: CategoryDao,
+    private val expenseDao: ExpenseDao,
+    private val currentUserProvider: CurrentUserProvider
+    , private val notificationRepository: NotificationRepository
+) {
+    private val userId: String = currentUserProvider.getUserId() ?: ""
+    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    // New: provide a Flow of categories intended for normal transactions (exclude goals/funds)
+    // Currently the project does not have an explicit isGoal/type column on CategoryEntity,
+    // so we exclude the special category named "Quỹ" (trimmed, case-insensitive).
+    // If in future you add an explicit flag (isGoal/type), update this method instead.
+    fun getTransactionCategories(): Flow<List<CategoryEntity>> {
+        return categoryDao.getAllCategories(userId).map { list ->
+            list.filter { cat ->
+                val nm = cat.name.trim()
+                // exclude exact match for Vietnamese "Quỹ" (case-insensitive)
+                !nm.equals("Quỹ", ignoreCase = true)
+            }
+        }
+    }
+
+    // New: API requested by the spec
+    suspend fun processCategoryAutoTransactions(today: LocalDate) {
+        // convert LocalDate to Calendar
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.YEAR, today.year)
+        cal.set(Calendar.MONTH, today.monthValue - 1)
+        cal.set(Calendar.DAY_OF_MONTH, today.dayOfMonth)
+        processCategoryAutoTransactions(cal)
+    }
+
+    // Existing no-arg for worker convenience; delegates to calendar-based impl
+    suspend fun processCategoryAutoTransactions() {
+        processCategoryAutoTransactions(Calendar.getInstance())
+    }
+
+    private suspend fun processCategoryAutoTransactions(todayCal: Calendar) {
+        // Fetch auto-enabled categories for the current user
+        val categories: List<CategoryEntity> = categoryDao.getAutoEnabledCategories(userId)
+        val todayDate = todayCal.time
+        val todayStr = dateFormat.format(todayDate)
+        val todayWeek = todayCal.get(Calendar.WEEK_OF_YEAR)
+        val todayYear = todayCal.get(Calendar.YEAR)
+        val todayDayOfMonth = todayCal.get(Calendar.DAY_OF_MONTH)
+        val todayDayOfWeekCalendar = todayCal.get(Calendar.DAY_OF_WEEK) // 1=Sunday,2=Monday,...7=Saturday
+
+        for (cat in categories) {
+            try {
+                if (!cat.isAutoTransactionEnabled) continue
+                if (cat.autoAmount <= 0.0) continue
+
+                var shouldExecute = false
+
+                when (cat.autoRepeatType.uppercase(Locale.getDefault())) {
+                    "WEEKLY" -> {
+                        // Map stored day (1=Monday..7=Sunday) to Calendar day (Sunday=1..Saturday=7)
+                        val desiredDayCalendar = cat.autoDayOfWeek?.let { d -> if (d == 7) Calendar.SUNDAY else d + 1 } ?: todayDayOfWeekCalendar
+                        if (todayDayOfWeekCalendar != desiredDayCalendar) {
+                            shouldExecute = false
+                        } else {
+                            val lastStr = cat.lastAutoExecutedDate
+                            if (lastStr == null) {
+                                shouldExecute = true
+                            } else {
+                                val lastDate = try { dateFormat.parse(lastStr) } catch (e: Exception) { null }
+                                if (lastDate == null) {
+                                    shouldExecute = true
+                                } else {
+                                    val lastCal = Calendar.getInstance().apply { time = lastDate }
+                                    val lastWeek = lastCal.get(Calendar.WEEK_OF_YEAR)
+                                    val lastYear = lastCal.get(Calendar.YEAR)
+                                    if (lastWeek != todayWeek || lastYear != todayYear) {
+                                        shouldExecute = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    "MONTHLY" -> {
+                        val desiredDay = cat.autoDayOfMonth ?: todayDayOfMonth.coerceAtMost(28)
+                        if (todayDayOfMonth != desiredDay) {
+                            shouldExecute = false
+                        } else {
+                            val lastStr = cat.lastAutoExecutedDate
+                            if (lastStr == null) {
+                                shouldExecute = true
+                            } else {
+                                val lastDate = try { dateFormat.parse(lastStr) } catch (e: Exception) { null }
+                                if (lastDate == null) {
+                                    shouldExecute = true
+                                } else {
+                                    val lastCal = Calendar.getInstance().apply { time = lastDate }
+                                    val lastMonth = lastCal.get(Calendar.MONTH)
+                                    val lastYear = lastCal.get(Calendar.YEAR)
+                                    if (lastMonth != todayCal.get(Calendar.MONTH) || lastYear != todayYear) {
+                                        shouldExecute = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        shouldExecute = false
+                    }
+                }
+
+                if (shouldExecute) {
+                    // Insert ExpenseEntity
+                    val expense = ExpenseEntity(
+                        id = null,
+                        title = cat.name,
+                        amount = cat.autoAmount,
+                        date = todayStr,
+                        type = cat.autoType,
+                        note = "Auto transaction",
+                        ownerId = userId
+                    )
+                    expenseDao.insertExpense(expense)
+
+                    // Update category's lastAutoExecutedDate
+                    val updated = CategoryEntity(
+                        id = cat.id,
+                        name = cat.name,
+                        ownerId = cat.ownerId,
+                        isAutoTransactionEnabled = cat.isAutoTransactionEnabled,
+                        autoAmount = cat.autoAmount,
+                        autoType = cat.autoType,
+                        autoRepeatType = cat.autoRepeatType,
+                        autoDayOfWeek = cat.autoDayOfWeek,
+                        autoDayOfMonth = cat.autoDayOfMonth,
+                        lastAutoExecutedDate = todayStr
+                    )
+                    categoryDao.updateCategory(updated)
+
+                    // Create notification about auto transaction
+                    try {
+                        val amt = Utils.formatCurrency(cat.autoAmount)
+                        val title = if (cat.autoType.equals("Income", ignoreCase = true)) "Thu nhập tự động" else "Chi tiêu tự động"
+                        val message = if (cat.autoType.equals("Income", ignoreCase = true)) {
+                            "Đã tự động ghi nhận thu nhập $amt cho danh mục ${cat.name}."
+                        } else {
+                            "Đã tự động ghi nhận chi tiêu $amt cho danh mục ${cat.name}."
+                        }
+                        notificationRepository.insertNotification(title = title, message = message, timestamp = System.currentTimeMillis(), type = "AUTO_TRANSACTION")
+                    } catch (_: Throwable) {
+                        // ignore notification failures
+                    }
+                }
+            } catch (t: Throwable) {
+                // ignore individual category failures to keep processing other categories
+            }
+        }
+    }
+}

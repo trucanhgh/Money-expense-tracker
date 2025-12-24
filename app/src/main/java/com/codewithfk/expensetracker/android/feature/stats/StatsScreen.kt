@@ -1,7 +1,6 @@
 package com.codewithfk.expensetracker.android.feature.stats
 
 import android.view.LayoutInflater
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,11 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,6 +30,7 @@ import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.feature.home.TransactionList
 import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
@@ -49,35 +47,26 @@ import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 fun StatsContent(
     entriesSummaryFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseSummary>>,
     topEntriesFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
-    entriesMapper: (List<com.codewithfk.expensetracker.android.data.model.ExpenseSummary>) -> List<Entry>
+    entriesMapper: (List<com.codewithfk.expensetracker.android.data.model.ExpenseSummary>) -> List<Entry>,
+    onBack: () -> Unit = {}
 ) {
     val isPreview = LocalInspectionMode.current
     val dataState by entriesSummaryFlowProvider().collectAsState(initial = emptyList())
     val topExpense by topEntriesFlowProvider().collectAsState(initial = emptyList())
     Column(modifier = Modifier.padding(16.dp)) {
         // header area
-        // Use a simple scaffold-like header
-        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_back),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.CenterStart).clickable { /* no-op in content */ },
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
-            )
-            ExpenseTextView(
-                text = "Thống kê",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.align(Alignment.Center)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.dots_menu),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.CenterEnd),
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-            )
-        }
+        // Use the shared top bar with a back button
+        TopBarWithBack(
+            title = {
+                ExpenseTextView(
+                    text = "Thống kê",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            },
+            onBack = onBack
+        )
 
         val entries = entriesMapper(dataState)
 
@@ -103,7 +92,8 @@ fun StatsScreen(navController: NavController, viewModel: StatsViewModel = hiltVi
     StatsContent(
         entriesSummaryFlowProvider = { viewModel.entries },
         topEntriesFlowProvider = { viewModel.topEntries },
-        entriesMapper = { summaries -> viewModel.getEntriesForChart(summaries) }
+        entriesMapper = { summaries -> viewModel.getEntriesForChart(summaries) },
+        onBack = { navController.popBackStack() }
     )
 }
 

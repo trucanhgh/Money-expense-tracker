@@ -2,7 +2,6 @@
 
 package com.codewithfk.expensetracker.android.feature.add_expense
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 // dark mode removed; always use light-mode defaults
@@ -39,7 +38,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -52,12 +50,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,9 +70,13 @@ import com.codewithfk.expensetracker.android.ui.theme.LocalAppUi
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
 import com.codewithfk.expensetracker.android.ui.theme.Typography
 import com.codewithfk.expensetracker.android.utils.Utils
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 /**
  * Stateless content for AddExpense screen. Accepts providers for categories/goals flows and callbacks.
@@ -87,7 +86,6 @@ fun AddExpenseContent(
     isIncome: Boolean,
     initialPrefill: String = "",
     categoriesFlowProvider: () -> Flow<List<CategoryEntity>>,
-    goalsFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.GoalEntity>>,
     onBack: () -> Unit,
     onMenuClicked: () -> Unit,
     onAddExpenseClick: (ExpenseEntity) -> Unit,
@@ -103,15 +101,14 @@ fun AddExpenseContent(
         list.isNotEmpty() && list.none { it == Color.Unspecified }
     } ?: fallbackLight
 
-    val topBarTint = if (appUi.topBarTint == Color.Unspecified) {
-        Color(0xFF9BA4B5)
-    } else appUi.topBarTint
+    // Force title/back icon tint to black on this screen as requested
+    val topBarTint = Color.Black
 
     Surface(modifier = Modifier.fillMaxSize()) {
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
             val (nameRow, card, topBar) = createRefs()
 
-            // Draw topbar as a Box with theme-aware gradient so it immediately uses the requested colors
+            // Draw topbar as a Box with theme-aware gradient so it can switch per-theme
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp)
@@ -130,41 +127,35 @@ fun AddExpenseContent(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }) {
-                Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable { onBack() }, tint = topBarTint)
-                ExpenseTextView(
-                    text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}",
-                    style = Typography.titleLarge,
-                    color = topBarTint,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.Center)
-                )
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .clickable { onMenuClicked() })
-                    DropdownMenu(
-                        expanded = menuExpanded.value,
-                        onDismissRequest = { menuExpanded.value = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { ExpenseTextView(text = "Hồ sơ") },
-                            onClick = {
-                                menuExpanded.value = false
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}", style = Typography.titleLarge, color = topBarTint) },
+                    onBack = onBack,
+                    trailingIcon = {
+                        Box(modifier = Modifier) {
+                            Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .clickable { onMenuClicked() })
+                            DropdownMenu(
+                                expanded = menuExpanded.value,
+                                onDismissRequest = { menuExpanded.value = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { ExpenseTextView(text = "Hồ sơ") },
+                                    onClick = {
+                                        menuExpanded.value = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { ExpenseTextView(text = "Cài đặt") },
+                                    onClick = {
+                                        menuExpanded.value = false
+                                    }
+                                )
                             }
-                        )
-                        DropdownMenuItem(
-                            text = { ExpenseTextView(text = "Cài đặt") },
-                            onClick = {
-                                menuExpanded.value = false
-                            }
-                        )
+                        }
                     }
-                }
+                )
 
             }
             DataForm(
@@ -176,7 +167,6 @@ fun AddExpenseContent(
                 onAddExpenseClick = onAddExpenseClick,
                 isIncome = isIncome,
                 categoriesFlow = categoriesFlowProvider(),
-                goalsFlow = goalsFlowProvider(),
                 initialPrefill = initialPrefill,
                 onInsertCategory = onInsertCategory
             )
@@ -207,7 +197,6 @@ fun AddExpense(
         isIncome = isIncome,
         initialPrefill = initialPrefill,
         categoriesFlowProvider = { viewModel.categories },
-        goalsFlowProvider = { viewModel.goals },
         onBack = { viewModel.onEvent(AddExpenseUiEvent.OnBackPressed) },
         onMenuClicked = { viewModel.onEvent(AddExpenseUiEvent.OnMenuClicked) },
         onAddExpenseClick = { model -> viewModel.onEvent(AddExpenseUiEvent.OnAddExpenseClicked(model)) },
@@ -221,7 +210,6 @@ fun DataForm(
     onAddExpenseClick: (model: ExpenseEntity) -> Unit,
     isIncome: Boolean,
     categoriesFlow: Flow<List<CategoryEntity>>,
-    goalsFlow: Flow<List<com.codewithfk.expensetracker.android.data.model.GoalEntity>>,
     initialPrefill: String = "",
     onInsertCategory: (String, (Boolean) -> Unit) -> Unit
 ) {
@@ -236,17 +224,18 @@ fun DataForm(
     }
 
     // missing form state: amount, type, date, dateDialogVisibility
+    // store only digits in the state (no dots). VisualTransformation will render dots while typing.
     val amount = remember { mutableStateOf("") }
     val type = remember { mutableStateOf(if (isIncome) "Income" else "Expense") }
-    val date = remember { mutableLongStateOf(0L) }
+    // Use nullable Long to represent anunset date (null = not chosen)
+    val date = remember { mutableStateOf<Long?>(null) }
     val dateDialogVisibility = remember { mutableStateOf(false) }
 
     // collect categories from ViewModel
     val categoriesState by categoriesFlow.collectAsState(initial = emptyList())
-    val goalsState by goalsFlow.collectAsState(initial = emptyList())
 
-    // combined list: categories then goals
-    val combined = (categoriesState.map { it.name } + goalsState.map { it.name }).distinct()
+    // dropdown should only show transaction categories (goals are excluded at repository layer and not mixed here)
+    val combined = categoriesState.map { it.name }.distinct()
 
     Column(
         modifier = modifier
@@ -280,22 +269,11 @@ fun DataForm(
         OutlinedTextField(
             value = amount.value,
             onValueChange = { newValue ->
-                amount.value = newValue.filter { it.isDigit() || it == '.' }
-            }, textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
-            visualTransformation = { text ->
-                val out = "₫" + text.text
-                 val currencyOffsetTranslator = object : OffsetMapping {
-                    override fun originalToTransformed(offset: Int): Int {
-                        return offset + 1
-                    }
-
-                    override fun transformedToOriginal(offset: Int): Int {
-                        return if (offset > 0) offset - 1 else 0
-                    }
-                }
-
-                TransformedText(AnnotatedString(out), currencyOffsetTranslator)
+                // keep only digits in the underlying value; visual transformation will show dots
+                amount.value = MoneyFormatting.unformat(newValue)
             },
+            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+            visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { ExpenseTextView(text = "Nhập số tiền") },
@@ -310,9 +288,8 @@ fun DataForm(
         )
         Spacer(modifier = Modifier.size(24.dp))
         TitleComponent("Ngày")
-        OutlinedTextField(value = if (date.longValue == 0L) "" else Utils.formatDateToHumanReadableForm(
-            date.longValue
-        ),
+        OutlinedTextField(
+            value = date.value?.let { Utils.formatDateToHumanReadableForm(it) } ?: "",
             onValueChange = {},
             modifier = Modifier
                 .fillMaxWidth()
@@ -322,16 +299,18 @@ fun DataForm(
                 disabledBorderColor = MaterialTheme.colorScheme.outline, disabledTextColor = MaterialTheme.colorScheme.onSurface,
                 disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface,
             ),
-            placeholder = { ExpenseTextView(text = "Chọn ngày") })
+            placeholder = { ExpenseTextView(text = "Chọn ngày") }
+        )
         Spacer(modifier = Modifier.size(24.dp))
         Button(
             onClick = {
                 val trimmedName = name.value.trim()
-                // If user never picked a date (date.longValue == 0L), record current time as the date.
-                val effectiveDateMillis = if (date.longValue == 0L) System.currentTimeMillis() else date.longValue
+                // If user never picked a date, fallback to today's local date at start of day
+                val effectiveDateMillis = date.value ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 val model = ExpenseEntity(
                     null,
                     trimmedName,
+                    // amount.value stores only digits (no separators); parse safely
                     amount.value.toDoubleOrNull() ?: 0.0,
                     Utils.formatDateToHumanReadableForm(effectiveDateMillis),
                     type.value
@@ -349,12 +328,12 @@ fun DataForm(
     if (dateDialogVisibility.value) {
         ExpenseDatePickerDialog(onDateSelected = {
             // The dialog will provide a valid millis; set it and close the picker
-            date.longValue = it
+            date.value = it
             dateDialogVisibility.value = false
         }, onDismiss = {
             // User canceled; just close the picker without changing date
             dateDialogVisibility.value = false
-        })
+        }, initialSelectedMillis = date.value)
     }
 }
 
@@ -466,13 +445,15 @@ fun CategoryDropdownWithAdd(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseDatePickerDialog(
-    onDateSelected: (date: Long) -> Unit, onDismiss: () -> Unit
+    onDateSelected: (date: Long) -> Unit,
+    onDismiss: () -> Unit,
+    initialSelectedMillis: Long? = null
 ) {
-    val datePickerState = rememberDatePickerState()
-    // If user doesn't pick a date, selectedDateMillis will be null; use current time as fallback
+    // Pass initial selection so the picker shows existing date if present
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialSelectedMillis)
     DatePickerDialog(onDismissRequest = { onDismiss() }, confirmButton = {
         TextButton(onClick = {
-            val selected = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+            val selected = datePickerState.selectedDateMillis ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             onDateSelected(selected)
         }) {
             ExpenseTextView(text = "Xác nhận")
@@ -544,7 +525,6 @@ fun ExpenseDropDown(listOfItems: List<String>, onItemSelected: (item: String) ->
 @Composable
 fun PreviewAddExpenseContent() {
     val sampleCategories = listOf(CategoryEntity(id = 1, name = "Ăn uống"), CategoryEntity(id = 2, name = "Di chuyển"))
-    val sampleGoals = listOf(com.codewithfk.expensetracker.android.data.model.GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0))
 
     // Wrap preview in the app theme so LocalAppUi and theme colors are provided
     ExpenseTrackerAndroidTheme(darkTheme = false) {
@@ -552,7 +532,6 @@ fun PreviewAddExpenseContent() {
             isIncome = false,
             initialPrefill = "",
             categoriesFlowProvider = { flowOf(sampleCategories) },
-            goalsFlowProvider = { flowOf(sampleGoals) },
             onBack = {},
             onMenuClicked = {},
             onAddExpenseClick = {},

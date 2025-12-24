@@ -22,6 +22,16 @@ import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
+import com.codewithfk.expensetracker.android.utils.MoneyFormatting
+import java.time.LocalDate
+import java.time.ZoneId
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,33 +39,46 @@ fun GoalDetailContent(
     name: String,
     goal: GoalEntity?,
     getContributionsForGoal: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
-    onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit
+    onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit,
+    onOpenTransactions: (String) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     // contributions flow collected inside content per requirement
     val contributionsFlow = getContributionsForGoal(name, null)
     val contributions by contributionsFlow.collectAsState(initial = emptyList())
 
     // total contributed to this goal: treat Expense as a contribution (money moved into goal) and Income as a withdrawal (money moved out)
-    // This way when user contributes to a goal we record an Expense (global balance decreases) but goal total increases.
     val total = contributions.fold(0.0) { acc, e -> if (e.type == "Expense") acc + e.amount else acc - e.amount }
 
     // Dialog state for adding contribution
     val showDialog = remember { mutableStateOf(false) }
     val dialogType = remember { mutableStateOf("Expense") } // "Income" or "Expense"
     val amountInput = remember { mutableStateOf("") }
-    // dateMillis == 0L means user hasn't picked a date yet (show empty). If user confirms without selecting,
-    // we'll use current time as fallback (consistent with AddExpense behavior).
-    val dateMillis = remember { mutableLongStateOf(0L) }
+    val dateMillis = remember { mutableStateOf<Long?>(null) }
     val datePickerVisible = remember { mutableStateOf(false) }
 
-    Scaffold(topBar = {}) { padding ->
+    // Use Scaffold without topBar and render TopBarWithBack inside the Column so header vertical spacing matches StatsScreen
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Header label (larger & bold) and the actual name (smaller, not bold)
-                ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
-                Spacer(modifier = Modifier.size(6.dp))
-                // Actual goal name: smaller and not bold (single-line with ellipsis for long names)
-                ExpenseTextView(text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // Shared top bar with back button (keeps pop behavior)
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+                    onBack = onBack
+                )
+
+                Spacer(modifier = Modifier.size(8.dp))
+
+                // Prominent goal name: show the actual goal name as the main title below the header
+                ExpenseTextView(
+                    text = if (name.isBlank()) "Mục tiêu không hợp lệ" else name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
                 Spacer(modifier = Modifier.size(12.dp))
 
                 // Goal card
@@ -92,7 +115,7 @@ fun GoalDetailContent(
                         dialogType.value = "Income"
                         amountInput.value = ""
                         // don't prefill date; keep 0L so field stays empty unless user picks a date
-                        dateMillis.longValue = 0L
+                        dateMillis.value = null
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Rút khỏi quỹ")
@@ -102,7 +125,7 @@ fun GoalDetailContent(
                         dialogType.value = "Expense"
                         amountInput.value = ""
                         // keep date unset until user selects
-                        dateMillis.longValue = 0L
+                        dateMillis.value = null
                         showDialog.value = true
                     }, modifier = Modifier.weight(1f)) {
                         ExpenseTextView(text = "Nạp vào quỹ")
@@ -112,23 +135,37 @@ fun GoalDetailContent(
                 Spacer(modifier = Modifier.size(16.dp))
 
                 // List of contributions
-                ExpenseTextView(text = "Giao dịch", color = Color.Black)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    ExpenseTextView(text = "Giao dịch", color = Color.Black)
+                    // Plain clickable text instead of a bordered Button (link style)
+                    Text(
+                        text = "Xem chi tiết",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .clickable { onOpenTransactions(name) }
+                            .padding(4.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.size(8.dp))
 
                 if (contributions.isEmpty()) {
                     ExpenseTextView(text = "Không có giao dịch", color = Color.Black)
                 } else {
                     // show newest transactions first
-                    val sortedContributions = contributions.sortedByDescending { Utils.getMillisFromDate(it.date) }
+                    // Ensure newest transactions appear first: sort by exact creation timestamp then by id as fallback.
+                    val sortedContributions = contributions.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
                     sortedContributions.forEach { e ->
-                        Row(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            ExpenseTextView(text = e.title, color = Color.Black)
-                            // Show positive amount for contributions (Expense), negative for withdrawals (Income)
-                            val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
-                            ExpenseTextView(text = amountDisplay)
-                        }
+                        // Keep the previous domain-specific sign behavior: contributions (Expense) shown positive,
+                        // withdrawals (Income) shown negative. Styling (font, spacing, color) is unified via TransactionItemRow.
+                        val amountDisplay = if (e.type == "Expense") Utils.formatCurrency(e.amount) else Utils.formatCurrency(-e.amount)
+                        TransactionItemRow(
+                            title = e.title,
+                            amount = amountDisplay,
+                            date = Utils.formatStringDateToMonthDayYear(e.date),
+                            isIncome = e.type == "Income",
+                            modifier = Modifier
+                        )
                     }
                 }
             }
@@ -139,10 +176,11 @@ fun GoalDetailContent(
     if (showDialog.value) {
         AlertDialog(onDismissRequest = { showDialog.value = false }, confirmButton = {
             TextButton(onClick = {
-                // normalize thousand separators and commas
-                val cleaned = amountInput.value.replace(Regex("[.,\\s]"), "")
-                val amt = cleaned.toDoubleOrNull() ?: 0.0
-                val dateStr = Utils.formatDateToHumanReadableForm(dateMillis.longValue)
+                // amountInput stores digits-only (no separators)
+                val amt = amountInput.value.toDoubleOrNull() ?: 0.0
+                // If no date chosen, fallback to today's local date at start of day in device zone
+                val effectiveDate = dateMillis.value ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val dateStr = Utils.formatDateToHumanReadableForm(effectiveDate)
                 // insert via callback
                 onInsertContribution(name, amt, dateStr, dialogType.value)
                 showDialog.value = false
@@ -155,19 +193,31 @@ fun GoalDetailContent(
                 // Withdraw from goal should be an Income (increases global balance).
                 ExpenseTextView(text = if (dialogType.value == "Income") "Rút khỏi mục tiêu" else "Nạp vào mục tiêu", color = Color.Black)
                 Spacer(modifier = Modifier.size(8.dp))
-                OutlinedTextField(value = amountInput.value, onValueChange = { v ->
-                    // allow digits and dots and commas
-                    amountInput.value = v.filter { it.isDigit() || it == '.' || it == ',' }
-                }, placeholder = { ExpenseTextView(text = "Số tiền (VND)") })
+                OutlinedTextField(
+                    value = amountInput.value,
+                    onValueChange = { v ->
+                        // keep underlying value digits-only; visual transformation shows thousand separators
+                        amountInput.value = MoneyFormatting.unformat(v)
+                    },
+                    visualTransformation = MoneyFormatting.ThousandSeparatorTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    placeholder = { ExpenseTextView(text = "Số tiền (VND)") }
+                )
                 Spacer(modifier = Modifier.size(8.dp))
-                OutlinedTextField(value = Utils.formatDateToHumanReadableForm(dateMillis.longValue), onValueChange = {}, modifier = Modifier.clickable { datePickerVisible.value = true }, readOnly = true, placeholder = { ExpenseTextView(text = "Chọn ngày") })
+                OutlinedTextField(
+                    value = dateMillis.value?.let { Utils.formatDateToHumanReadableForm(it) } ?: "",
+                    onValueChange = {},
+                    modifier = Modifier.clickable { datePickerVisible.value = true },
+                    readOnly = true,
+                    placeholder = { ExpenseTextView(text = "Chọn ngày") }
+                )
 
                 if (datePickerVisible.value) {
-                    val pickerState = rememberDatePickerState()
+                    val pickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis.value)
                     DatePickerDialog(onDismissRequest = { datePickerVisible.value = false }, confirmButton = {
                         TextButton(onClick = {
-                            val selected = pickerState.selectedDateMillis ?: System.currentTimeMillis()
-                            dateMillis.longValue = selected
+                            val selected = pickerState.selectedDateMillis ?: LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                            dateMillis.value = selected
                             datePickerVisible.value = false
                         }) { ExpenseTextView(text = "Xác nhận") }
                     }, dismissButton = {
@@ -184,7 +234,7 @@ fun GoalDetailContent(
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun GoalDetailScreen(
-    _navController: NavController,
+    navController: NavController,
     encodedName: String?,
     viewModel: GoalViewModel = hiltViewModel()
 ) {
@@ -193,21 +243,40 @@ fun GoalDetailScreen(
     val goals by viewModel.goals.collectAsState(initial = emptyList())
     val goal = goals.find { it.name.equals(name, ignoreCase = true) }
 
-    GoalDetailContent(
-        name = name,
-        goal = goal,
-        getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
-        onInsertContribution = { goalName, amt, dateStr, type ->
-            // Ensure deposit => Expense and withdrawal => Income.
-            // If UI mistakenly passes a dialog type opposite to semantics, normalize here.
-            val normalizedType = when (type) {
-                "Expense", "expense" -> "Expense"
-                "Income", "income" -> "Income"
-                else -> "Expense"
-            }
-            viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+    // Provide a top-level Scaffold with a SnackbarHost so ViewModel messages can be shown from here.
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Collect UI messages from ViewModel and show them as snackbars
+    LaunchedEffect(viewModel) {
+        viewModel.uiMessage.collect { msg ->
+            // showSnackbar is suspend; ensure sequential display
+            snackbarHostState.showSnackbar(msg)
         }
-    )
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { innerPadding ->
+        Surface(modifier = Modifier.padding(innerPadding)) {
+            // Forward content to the stateless GoalDetailContent. Keep layout padding.
+            GoalDetailContent(
+                name = name,
+                goal = goal,
+                getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
+                onInsertContribution = { goalName, amt, dateStr, type ->
+                    val normalizedType = when (type) {
+                        "Expense", "expense" -> "Expense"
+                        "Income", "income" -> "Income"
+                        else -> "Expense"
+                    }
+                    viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+                },
+                onOpenTransactions = { goalName ->
+                    val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
+                    navController.navigate("/all_transactions/goal/$encoded")
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)
@@ -219,6 +288,12 @@ fun PreviewGoalDetailContent() {
     )
     val sampleGoal = GoalEntity(id = 1, name = "Du lịch", targetAmount = 5_000_000.0)
     ExpenseTrackerAndroidTheme {
-        GoalDetailContent(name = "Du lịch", goal = sampleGoal, getContributionsForGoal = { _, _ -> flowOf(sampleContributions) }) { _, _, _, _ -> }
+        GoalDetailContent(
+            name = "Du lịch",
+            goal = sampleGoal,
+            getContributionsForGoal = { _, _ -> flowOf(sampleContributions) },
+            onInsertContribution = { _, _, _, _ -> },
+            onOpenTransactions = {}
+        )
     }
 }

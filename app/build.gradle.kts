@@ -39,6 +39,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        // Enable desugaring for java.time APIs on older devices
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "1.8"
@@ -94,4 +96,10 @@ dependencies {
     val nav_version = "2.7.7"
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Desugaring library to allow java.time on older Android versions
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+
+    // WorkManager for background daily processing
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 }

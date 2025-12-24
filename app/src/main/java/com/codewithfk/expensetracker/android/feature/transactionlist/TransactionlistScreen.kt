@@ -1,9 +1,8 @@
 package com.codewithfk.expensetracker.android.feature.transactionlist
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,151 +31,159 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.feature.add_expense.ExpenseDropDown
-import com.codewithfk.expensetracker.android.feature.home.TransactionItem
 import com.codewithfk.expensetracker.android.utils.Utils
-import com.codewithfk.expensetracker.android.feature.home.HomeViewModel
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
+import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.Icon
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.Button
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionListContent(
     expensesFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
     onBack: () -> Unit
 ) {
+    // For backward compatibility - not used after refactor
     val state by expensesFlowProvider().collectAsState(initial = emptyList())
-    var filterType by remember { mutableStateOf("Tất cả") }
-    var menuExpanded by remember { mutableStateOf(false) }
+    TransactionListContentBase(expensesFlow = { flowOf(state) }, onBack = onBack)
+}
 
-    val filteredTransactions = when (filterType) {
-        "Chi tiêu" -> state.filter { it.type == "Expense" }
-        "Thu nhập" -> state.filter { it.type == "Income" }
-        else -> state
+@Composable
+fun TransactionListScreen(navController: NavController, categoryName: String? = null, goalName: String? = null, viewModel: TransactionViewModel = hiltViewModel()) {
+    // Configure ViewModel params
+    LaunchedEffect(categoryName, goalName) {
+        viewModel.setParams(categoryName, goalName)
     }
 
-    val filteredByDateRange = filteredTransactions.filter { transaction ->
-        // no-op: keep existing behaviour
-        true
-    }
+    val expenses by viewModel.filteredExpenses.collectAsState()
 
-    // Sort by date descending (newest first). Dates are stored as String dd/MM/yyyy; convert to millis for sorting.
-    val sortedTransactions = filteredByDateRange.sortedByDescending { Utils.getMillisFromDate(it.date) }
+    TransactionListContentBase(expensesFlow = { viewModel.filteredExpenses }, onBack = { navController.popBackStack() }, viewModel = viewModel)
+}
+
+@Composable
+fun TransactionListContentBase(
+    expensesFlow: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
+    onBack: () -> Unit,
+    viewModel: TransactionViewModel = hiltViewModel()
+) {
+    val expenses by expensesFlow().collectAsState(initial = emptyList())
+    var showFilter by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-            ) {
-                // Back Button
-                Image(
-                    painter = painterResource(id = R.drawable.ic_back),
-                    contentDescription = "Quay lại",
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable { onBack() },
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-
-                // Title
-                ExpenseTextView(
-                    text = "Giao dịch",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.Center)
-                )
-
-                // Three Dots Menu
-                Image(
-                    painter = painterResource(id = R.drawable.ic_filter),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .clickable { menuExpanded = !menuExpanded },
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-            }
+            TopBarWithBack(
+                title = { ExpenseTextView(text = "Giao dịch", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black) },
+                onBack = onBack,
+                trailingIcon = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showFilter = !showFilter }) {
+                            Icon(imageVector = Icons.Default.FilterList, contentDescription = "Bộ lọc")
+                        }
+                    }
+                }
+            )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Content area for the transaction list
+        // Apply the Scaffold content padding to the root Box so both the list and
+        // the overlay are positioned below the TopAppBar. The overlay will be
+        // aligned to the top of this content area so it appears directly under
+        // the header and covers the list instead of pushing it.
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+        ) {
+            // Transaction list (full screen under the overlay). Don't apply the
+            // Scaffold padding again to the LazyColumn to avoid double-padding.
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
                     .padding(horizontal = 16.dp)
             ) {
-                item {
-                    // Dropdowns
-                    AnimatedVisibility(
-                        visible = menuExpanded,
-                        enter = slideInVertically(initialOffsetY = { -it / 2 }),
-                        exit = slideOutVertically(targetOffsetY = { -it  }),
-                        modifier = Modifier.fillMaxWidth().padding(8.dp)
-                    ) {
-                        // Use a Surface to make the panel span full width and use app surface color (usually white)
-                        androidx.compose.material3.Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color.White
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                // Type Filter Dropdown
-                                ExpenseDropDown(
-                                    listOfItems = listOf("Tất cả", "Chi tiêu", "Thu nhập"),
-                                    onItemSelected = { selected ->
-                                        filterType = selected
-                                        menuExpanded = false // Close menu after selection
-                                    }
-                                )
+                items(expenses) { item ->
+                    val amount = if (item.type == "Income") item.amount else -item.amount
+                    TransactionItemRow(
+                        title = item.title,
+                        amount = Utils.formatCurrency(amount),
+                        date = Utils.formatStringDateToMonthDayYear(item.date),
+                        isIncome = item.type == "Income",
+                        modifier = Modifier
+                    )
+                }
+            }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+            // Overlay filter panel at the top - does not push content
+            AnimatedVisibility(visible = showFilter, enter = fadeIn(), exit = fadeOut()) {
+                // Align the filter surface to the top of the content area so it appears
+                // directly below the TopAppBar and overlays the transaction list.
+                Surface(modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .align(Alignment.TopStart), color = MaterialTheme.colorScheme.surface, tonalElevation = 8.dp) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        // Type Filter
+                        ExpenseDropDown(
+                            listOfItems = listOf("Tất cả", "Chi tiêu", "Thu nhập"),
+                            onItemSelected = { selected ->
+                                viewModel.setFilterType(selected)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                                // Date Range Filter Dropdown
-                                ExpenseDropDown(
-                                    listOfItems = listOf( "Hôm qua", "Hôm nay", "30 ngày qua", "90 ngày qua", "1 năm"),
-                                    onItemSelected = { selected ->
-                                        // date range selection currently not used
-                                        menuExpanded = false // Close menu after selection
-                                    }
-                                )
+                        // Date Range Filter - map choices to DateRange
+                        ExpenseDropDown(
+                            listOfItems = listOf("Tất cả", "Hôm nay", "Hôm qua", "30 ngày qua", "90 ngày qua", "1 năm"),
+                            onItemSelected = { selected ->
+                                when (selected) {
+                                    "Tất cả" -> viewModel.setDateRange(DateRange.ALL)
+                                    "Hôm nay" -> viewModel.setDateRange(DateRange.TODAY)
+                                    "Hôm qua" -> viewModel.setDateRange(DateRange.YESTERDAY)
+                                    "30 ngày qua" -> viewModel.setDateRange(DateRange.LAST_30_DAYS)
+                                    "90 ngày qua" -> viewModel.setDateRange(DateRange.LAST_90_DAYS)
+                                    "1 năm" -> viewModel.setDateRange(DateRange.LAST_365_DAYS)
+                                    else -> viewModel.setDateRange(DateRange.ALL)
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { viewModel.resetFilters() }) {
+                                ExpenseTextView(text = "Đặt lại")
+                            }
+                            Button(onClick = { showFilter = false }) {
+                                ExpenseTextView(text = "Áp dụng")
                             }
                         }
                     }
                 }
-                items(sortedTransactions) { item ->
-                    val amount = if (item.type == "Income") item.amount else -item.amount
-                    TransactionItem(
-                        title = item.title,
-                        amount = Utils.formatCurrency(amount),
-                        date = Utils.formatStringDateToMonthDayYear(item.date),
-                        color = if (item.type == "Income") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                        Modifier
-                    )
-                }
             }
         }
     }
-}
-
-@Composable
-fun TransactionListScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
-    val expensesFlowProvider: () -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>> = { viewModel.expenses }
-
-    TransactionListContent(
-        expensesFlowProvider = expensesFlowProvider,
-        onBack = { navController.popBackStack() }
-    )
 }
 
 @Preview(showBackground = true)
@@ -186,9 +194,6 @@ fun PreviewTransactionListContent() {
         com.codewithfk.expensetracker.android.data.model.ExpenseEntity(id = 2, title = "Lương", amount = 5000000.0, date = "01/12/2025", type = "Income")
     )
     ExpenseTrackerAndroidTheme {
-        TransactionListContent(
-            expensesFlowProvider = { flowOf(sample) },
-            onBack = {}
-        )
+        TransactionListContentBase(expensesFlow = { flowOf(sample) }, onBack = {})
     }
 }
