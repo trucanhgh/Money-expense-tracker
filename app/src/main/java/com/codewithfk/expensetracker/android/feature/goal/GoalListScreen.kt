@@ -81,14 +81,15 @@ fun GoalListContent(
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deletingGoalId = remember { mutableStateOf<Int?>(null) }
 
-    Scaffold(topBar = {
-        TopBarWithBack(
-            title = { ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
-            onBack = onBack
-        )
-    }) { padding ->
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
+                // Move TopBarWithBack here so it aligns like StatsScreen
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+                    onBack = onBack
+                )
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     // Left title handled by topBar
                     Spacer(modifier = Modifier.size(0.dp))
@@ -132,7 +133,7 @@ fun GoalListContent(
                                         color = Color.Black
                                     )
 
-                                    // Top-right: overflow menu ("...") placed inside a Box so the DropdownMenu overlays and doesn't shift layout
+                                    // Top-right: overflow menu (unchanged)
                                     var menuExpanded by remember { mutableStateOf(false) }
                                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                                         IconButton(onClick = { menuExpanded = true }) {

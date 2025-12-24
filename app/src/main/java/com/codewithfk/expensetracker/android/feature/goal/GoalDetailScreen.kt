@@ -10,8 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,9 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import com.codewithfk.expensetracker.android.R
+
 import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -240,7 +236,6 @@ fun GoalDetailScreen(
 
     // Provide a top-level Scaffold with a SnackbarHost so ViewModel messages can be shown from here.
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     // Collect UI messages from ViewModel and show them as snackbars
     LaunchedEffect(viewModel) {
@@ -250,26 +245,28 @@ fun GoalDetailScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
-        // Forward content to the stateless GoalDetailContent. Keep layout padding.
-        GoalDetailContent(
-            name = name,
-            goal = goal,
-            getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
-            onInsertContribution = { goalName, amt, dateStr, type ->
-                val normalizedType = when (type) {
-                    "Expense", "expense" -> "Expense"
-                    "Income", "income" -> "Income"
-                    else -> "Expense"
-                }
-                viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
-            },
-            onOpenTransactions = { goalName ->
-                val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
-                navController.navigate("/all_transactions/goal/$encoded")
-            },
-            onBack = { navController.popBackStack() }
-        )
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { innerPadding ->
+        Surface(modifier = Modifier.padding(innerPadding)) {
+            // Forward content to the stateless GoalDetailContent. Keep layout padding.
+            GoalDetailContent(
+                name = name,
+                goal = goal,
+                getContributionsForGoal = { n, m -> contributionsFlowProvider(n, m) },
+                onInsertContribution = { goalName, amt, dateStr, type ->
+                    val normalizedType = when (type) {
+                        "Expense", "expense" -> "Expense"
+                        "Income", "income" -> "Income"
+                        else -> "Expense"
+                    }
+                    viewModel.insertContribution(goalName, amt, dateStr, normalizedType)
+                },
+                onOpenTransactions = { goalName ->
+                    val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
+                    navController.navigate("/all_transactions/goal/$encoded")
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 

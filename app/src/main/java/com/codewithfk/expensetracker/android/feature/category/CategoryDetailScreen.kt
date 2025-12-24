@@ -47,14 +47,14 @@ fun CategoryDetailContent(
     // If name is blank show a friendly message
     if (name.isBlank()) {
         // Show a top bar with a back button so user can navigate back from the error state
-        Scaffold(topBar = {
-            TopBarWithBack(
-                title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
-                onBack = onBack
-            )
-        }) { padding ->
+        Scaffold() { padding ->
             Surface(modifier = Modifier.padding(padding)) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    TopBarWithBack(
+                        title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
+                        onBack = onBack
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
                     ExpenseTextView(text = "Danh mục không hợp lệ", color = Color.Black)
                 }
             }
@@ -62,15 +62,15 @@ fun CategoryDetailContent(
         return
     }
 
-    Scaffold(topBar = {
-        TopBarWithBack(
-            title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
-            onBack = onBack
-        )
-    }) { padding ->
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Header label (larger & bold) moved to topBar
+                // Move TopBarWithBack here so header lowers like Stats screen
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
+                    onBack = onBack
+                )
+
                 Spacer(modifier = Modifier.size(6.dp))
                 // Actual category name: smaller and not bold (single-line with ellipsis)
                 ExpenseTextView(text = name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)

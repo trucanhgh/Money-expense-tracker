@@ -114,14 +114,15 @@ fun CategoryListContent(
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deletingCategoryId = remember { mutableStateOf<Int?>(null) }
 
-    Scaffold(topBar = {
-        TopBarWithBack(
-            title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
-            onBack = onBack
-        )
-    }) { padding ->
+    Scaffold() { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
+                // Move TopBarWithBack here so it aligns vertically the same as StatsScreen
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+                    onBack = onBack
+                )
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     // Title shown in topBar; keep placeholder and + button on the right
                     ExpenseTextView(text = "", style = MaterialTheme.typography.titleLarge, color = Color.Black)
