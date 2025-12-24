@@ -65,6 +65,8 @@ import androidx.compose.material3.Icon as MIcon
 import com.codewithfk.expensetracker.android.feature.notification.NotificationViewModel
 import com.codewithfk.expensetracker.android.data.model.NotificationEntity
 import com.codewithfk.expensetracker.android.widget.TransactionItemRow
+import java.util.Calendar
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeContent(
@@ -75,6 +77,26 @@ fun HomeContent(
     onLogoutClicked: () -> Unit
 ) {
     val appUi = LocalAppUi.current
+
+    // A lightweight tick that forces recomposition when the month/year changes.
+    // This ensures the "Tháng này" totals update automatically across midnight/month boundaries
+    // even if the expense list does not change.
+    val monthTick = remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        var prevMonth = Calendar.getInstance().get(Calendar.MONTH)
+        var prevYear = Calendar.getInstance().get(Calendar.YEAR)
+        while (true) {
+            delay(60_000L) // check every minute
+            val now = Calendar.getInstance()
+            val m = now.get(Calendar.MONTH)
+            val y = now.get(Calendar.YEAR)
+            if (m != prevMonth || y != prevYear) {
+                prevMonth = m
+                prevYear = y
+                monthTick.value = System.currentTimeMillis()
+            }
+        }
+    }
 
     // Use NotificationViewModel (Hilt) to observe real notifications
     val notificationViewModel: NotificationViewModel = hiltViewModel()
@@ -191,16 +213,34 @@ fun HomeContent(
                 }
             }
 
-            val expenseTotal = expenses
-            val expense = "" + Utils.formatCurrency(expenseTotal.filter { it.type != "Income" }.sumOf { it.amount })
-            val income = "" + Utils.formatCurrency(expenseTotal.filter { it.type == "Income" }.sumOf { it.amount })
-            val balance = "" + Utils.formatCurrency(expenseTotal.fold(0.0) { acc, e -> if (e.type == "Income") acc + e.amount else acc - e.amount })
+            // Compute totals only for current month (local device time)
+            // include monthTick.value in the composition so recomposition happens when it changes
+            val monthSignal = monthTick.value
+            val now = Calendar.getInstance().apply { timeInMillis = monthSignal }
+            val currentMonth = now.get(Calendar.MONTH)
+            val currentYear = now.get(Calendar.YEAR)
+
+            val expensesThisMonth = expenses.filter { e ->
+                val millis = Utils.getMillisFromDate(e.date)
+                val c = Calendar.getInstance()
+                c.timeInMillis = millis
+                c.get(Calendar.MONTH) == currentMonth && c.get(Calendar.YEAR) == currentYear
+            }
+
+            // income and expense should be only for current month
+            val expense = "" + Utils.formatCurrency(expensesThisMonth.filter { it.type != "Income" }.sumOf { it.amount })
+            val income = "" + Utils.formatCurrency(expensesThisMonth.filter { it.type == "Income" }.sumOf { it.amount })
+            // balance should be for all transactions (not limited to current month)
+            val balance = "" + Utils.formatCurrency(expenses.fold(0.0) { acc, e -> if (e.type == "Income") acc + e.amount else acc - e.amount })
+
             CardItem(
                 modifier = Modifier.constrainAs(card) {
                     top.linkTo(nameRow.bottom)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 },
+                // indicate this card's income/expense numbers are for the current month
+                subtitle = "Tháng này",
                 balance = balance, income = income, expense = expense,
                 // Force the card background to black so the balance card is always black
                 cardBg = Color.Black
@@ -367,9 +407,11 @@ fun MultiFloatingActionButton(
 @Composable
 fun CardItem(
     modifier: Modifier,
+    // optional small subtitle (e.g., "Tháng này") - now shown above the income/expense row
+    subtitle: String? = null,
     balance: String, income: String, expense: String,
-    // Force the card background for the balance card to black as requested
-    cardBg: Color = Color.Black
+     // Force the card background for the balance card to black as requested
+     cardBg: Color = Color.Black
 ) {
     Column(
         modifier = modifier
@@ -386,16 +428,16 @@ fun CardItem(
                 .weight(1f)
         ) {
             Column {
-                ExpenseTextView(
-                    text = "Tổng số dư",
-                    style = Typography.titleMedium,
-                    // Use white text over the black card
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                ExpenseTextView(
-                    text = balance, style = Typography.headlineLarge, color = Color.White,
-                )
+                 ExpenseTextView(
+                     text = "Tổng số dư",
+                     style = Typography.titleMedium,
+                     // Use white text over the black card
+                     color = Color.White
+                 )
+                 Spacer(modifier = Modifier.size(8.dp))
+                 ExpenseTextView(
+                     text = balance, style = Typography.headlineLarge, color = Color.White,
+                 )
             }
         }
 
@@ -404,21 +446,34 @@ fun CardItem(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            CardRowItem(
-                modifier = Modifier
-                    .align(Alignment.CenterStart),
-                title = "Thu nhập",
-                amount = income,
-                imaget = R.drawable.ic_income
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            CardRowItem(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd),
-                title = "Chi tiêu",
-                amount = expense,
-                imaget = R.drawable.ic_expense
-            )
+            // Show the small subtitle above the income/expense row (per user's request)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                subtitle?.let {
+                    ExpenseTextView(
+                        text = it,
+                        style = Typography.bodySmall,
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    CardRowItem(
+                        modifier = Modifier,
+                        title = "Thu nhập",
+                        amount = income,
+                        imaget = R.drawable.ic_income
+                    )
+
+                    CardRowItem(
+                        modifier = Modifier,
+                        title = "Chi tiêu",
+                        amount = expense,
+                        imaget = R.drawable.ic_expense
+                    )
+                }
+            }
         }
 
     }
@@ -432,7 +487,7 @@ fun TransactionList(
     onSeeAllClicked: () -> Unit
 ) {
     // Always display newest transactions at top. Use the exact creation timestamp for deterministic ordering.
-    val sorted = list.sortedWith(compareByDescending<com.codewithfk.expensetracker.android.data.model.ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
+    val sorted = list.sortedWith(compareByDescending<ExpenseEntity> { it.createdAt }.thenByDescending { it.id ?: 0 })
 
     // Use fixed light-mode colors (no dark/light switching)
     val sectionTitleColor = Color.Black
