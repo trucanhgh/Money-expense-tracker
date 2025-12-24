@@ -76,6 +76,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 /**
  * Stateless content for AddExpense screen. Accepts providers for categories/goals flows and callbacks.
@@ -107,7 +108,7 @@ fun AddExpenseContent(
         ConstraintLayout(modifier = Modifier.fillMaxSize()) {
             val (nameRow, card, topBar) = createRefs()
 
-            // Draw topbar as a Box with theme-aware gradient so it immediately uses the requested colors
+            // Draw topbar as a Box with theme-aware gradient so it can switch per-theme
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp)
@@ -126,41 +127,35 @@ fun AddExpenseContent(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }) {
-                Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable { onBack() }, tint = topBarTint)
-                ExpenseTextView(
-                    text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}",
-                    style = Typography.titleLarge,
-                    color = topBarTint,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.Center)
-                )
-                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .clickable { onMenuClicked() })
-                    DropdownMenu(
-                        expanded = menuExpanded.value,
-                        onDismissRequest = { menuExpanded.value = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { ExpenseTextView(text = "Hồ sơ") },
-                            onClick = {
-                                menuExpanded.value = false
+                TopBarWithBack(
+                    title = { ExpenseTextView(text = "Thêm ${if (isIncome) "thu nhập" else "chi tiêu"}", style = Typography.titleLarge, color = topBarTint) },
+                    onBack = onBack,
+                    trailingIcon = {
+                        Box(modifier = Modifier) {
+                            Icon(painter = painterResource(id = R.drawable.dots_menu), contentDescription = null, tint = topBarTint,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .clickable { onMenuClicked() })
+                            DropdownMenu(
+                                expanded = menuExpanded.value,
+                                onDismissRequest = { menuExpanded.value = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { ExpenseTextView(text = "Hồ sơ") },
+                                    onClick = {
+                                        menuExpanded.value = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { ExpenseTextView(text = "Cài đặt") },
+                                    onClick = {
+                                        menuExpanded.value = false
+                                    }
+                                )
                             }
-                        )
-                        DropdownMenuItem(
-                            text = { ExpenseTextView(text = "Cài đặt") },
-                            onClick = {
-                                menuExpanded.value = false
-                            }
-                        )
+                        }
                     }
-                }
+                )
 
             }
             DataForm(

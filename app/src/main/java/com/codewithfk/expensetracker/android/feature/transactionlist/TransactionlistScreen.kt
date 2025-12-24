@@ -37,6 +37,7 @@ import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.feature.add_expense.ExpenseDropDown
 import com.codewithfk.expensetracker.android.utils.Utils
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 import com.codewithfk.expensetracker.android.widget.TransactionItemRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -94,39 +95,17 @@ fun TransactionListContentBase(
 
     Scaffold(
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-            ) {
-                // Back Button
-                Image(
-                    painter = painterResource(id = R.drawable.ic_back),
-                    contentDescription = "Quay lại",
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable { onBack() },
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-
-                // Title
-                ExpenseTextView(
-                    text = "Giao dịch",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.Center)
-                )
-
-                // Filter icon on the right
-                Row(modifier = Modifier.align(Alignment.CenterEnd), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { showFilter = !showFilter }) {
-                        Icon(imageVector = Icons.Default.FilterList, contentDescription = "Bộ lọc")
+            TopBarWithBack(
+                title = { ExpenseTextView(text = "Giao dịch", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black) },
+                onBack = onBack,
+                trailingIcon = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showFilter = !showFilter }) {
+                            Icon(imageVector = Icons.Default.FilterList, contentDescription = "Bộ lọc")
+                        }
                     }
                 }
-            }
+            )
         }
     ) { paddingValues ->
         // Apply the Scaffold content padding to the root Box so both the list and

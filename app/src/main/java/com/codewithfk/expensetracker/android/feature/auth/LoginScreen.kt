@@ -18,7 +18,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
@@ -57,37 +57,43 @@ fun LoginContent(
     onPasswordChange: (String) -> Unit,
     onRememberChange: (Boolean) -> Unit,
     onLoginClick: () -> Unit,
-    onNavigateRegister: () -> Unit
+    onNavigateRegister: () -> Unit,
+    onBack: () -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     // dark mode removed; always light
     val isDark = false
 
     // adaptive text color: white in dark mode, black in light mode
-    val adaptiveTextColor = if (isDark) Color.White else Color.Black
-    Scaffold(topBar = {}) { padding ->
-        Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
+    val adaptiveTextColor = if (isDark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "", modifier = Modifier.padding(0.dp)) },
+            onBack = onBack
+        )
+    }) { padding ->
+         Surface(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(modifier = Modifier.size(24.dp))
                 ExpenseTextView(
-                    text = "Ch\u00e0o m\u1eebng",
+                    text = "Chào mừng",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (!isDark) Color.Black else MaterialTheme.colorScheme.onBackground
+                    color = if (!isDark) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.size(24.dp))
 
-                OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "T\u00ean \u0111\u0103ng nh\u1eadp") })
+                OutlinedTextField(value = username, onValueChange = onUsernameChange, modifier = Modifier.fillMaxWidth(), placeholder = { ExpenseTextView(text = "Tên đăng nhập") })
                 Spacer(modifier = Modifier.size(12.dp))
                 OutlinedTextField(
                     value = password,
                     onValueChange = onPasswordChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { ExpenseTextView(text = "M\u1eadt kh\u1ea9u") },
+                    placeholder = { ExpenseTextView(text = "Mật khẩu") },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         // Use a simple clickable text toggle to avoid depending on material icon artifacts in this project.
                         ExpenseTextView(
-                            text = if (passwordVisible) "\u1ea8n" else "Hi\u1ec7n",
+                            text = if (passwordVisible) "Ẩn" else "Hiện",
                             modifier = Modifier.clickable { passwordVisible = !passwordVisible }
                         )
                     }
@@ -96,7 +102,7 @@ fun LoginContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = remember, onCheckedChange = onRememberChange)
                     Spacer(modifier = Modifier.size(8.dp))
-                    ExpenseTextView(text = "Ghi nh\u1edb \u0111\u0103ng nh\u1eadp", color = adaptiveTextColor)
+                    ExpenseTextView(text = "Ghi nhớ đăng nhập", color = adaptiveTextColor)
                 }
                 Spacer(modifier = Modifier.size(24.dp))
                 Button(
@@ -108,19 +114,19 @@ fun LoginContent(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = androidx.compose.ui.unit.Dp.Hairline, color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        ExpenseTextView(text = "\u0110\u0103ng nh\u1eadp")
+                        ExpenseTextView(text = "Đăng nhập")
                     }
                 }
 
                 Spacer(modifier = Modifier.size(12.dp))
                 showMessage?.let { msg ->
-                    ExpenseTextView(text = msg, color = Color.Black)
+                    ExpenseTextView(text = msg, color = androidx.compose.ui.graphics.Color.Black)
                 }
 
-                // Small '\u0110\u0103ng k\u00fd' link at the bottom-right
+                // Small 'Đăng ký' link at the bottom-right
                 Spacer(modifier = Modifier.size(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    ExpenseTextView(text = "\u0110\u0103ng k\u00fd", color = adaptiveTextColor, modifier = Modifier.clickable { onNavigateRegister() })
+                    ExpenseTextView(text = "Đăng ký", color = adaptiveTextColor, modifier = Modifier.clickable { onNavigateRegister() })
                 }
             }
         }
@@ -187,7 +193,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
                 }
             }
         },
-        onNavigateRegister = { navController.navigate("/register") }
+        onNavigateRegister = { navController.navigate("/register") },
+        onBack = { navController.popBackStack() }
     )
 }
 

@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.flowOf
 import com.codewithfk.expensetracker.android.ui.theme.ExpenseTrackerAndroidTheme
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 /**
  * Stateless UI for Goal List. Accepts data and callbacks. It may call getContributionsForGoal to collect flows.
@@ -64,7 +65,8 @@ fun GoalListContent(
     onCreateGoal: (name: String, target: Double) -> Unit,
     onOpenGoal: (name: String) -> Unit,
     onUpdateGoal: (goal: GoalEntity) -> Unit,
-    onDeleteGoal: (goal: GoalEntity) -> Unit
+    onDeleteGoal: (goal: GoalEntity) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     val showAddDialog = remember { mutableStateOf(false) }
     val newName = remember { mutableStateOf("") }
@@ -79,11 +81,17 @@ fun GoalListContent(
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deletingGoalId = remember { mutableStateOf<Int?>(null) }
 
-    Scaffold(topBar = {}) { padding ->
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+            onBack = onBack
+        )
+    }) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Quỹ của tôi (${goals.size})", style = MaterialTheme.typography.titleLarge, color = Color.Black)
+                    // Left title handled by topBar
+                    Spacer(modifier = Modifier.size(0.dp))
                     Button(
                         onClick = { showAddDialog.value = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -280,7 +288,8 @@ fun GoalListScreen(navController: NavController, viewModel: GoalViewModel = hilt
             navController.navigate("/goal_detail/$encoded")
         },
         onUpdateGoal = { goal -> viewModel.updateGoal(goal) },
-        onDeleteGoal = { goal -> viewModel.deleteGoal(goal) }
+        onDeleteGoal = { goal -> viewModel.deleteGoal(goal) },
+        onBack = { navController.popBackStack() }
     )
 }
 

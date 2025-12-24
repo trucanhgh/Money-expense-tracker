@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,6 +34,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import com.codewithfk.expensetracker.android.R
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,25 +44,29 @@ fun GoalDetailContent(
     goal: GoalEntity?,
     getContributionsForGoal: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
     onInsertContribution: (goalName: String, amount: Double, dateStr: String, type: String) -> Unit,
-    onOpenTransactions: (String) -> Unit
+    onOpenTransactions: (String) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     // contributions flow collected inside content per requirement
     val contributionsFlow = getContributionsForGoal(name, null)
     val contributions by contributionsFlow.collectAsState(initial = emptyList())
 
     // total contributed to this goal: treat Expense as a contribution (money moved into goal) and Income as a withdrawal (money moved out)
-    // This way when user contributes to a goal we record an Expense (global balance decreases) but goal total increases.
     val total = contributions.fold(0.0) { acc, e -> if (e.type == "Expense") acc + e.amount else acc - e.amount }
 
     // Dialog state for adding contribution
     val showDialog = remember { mutableStateOf(false) }
     val dialogType = remember { mutableStateOf("Expense") } // "Income" or "Expense"
     val amountInput = remember { mutableStateOf("") }
-    // Use nullable Long for date; null means user hasn't selected a date yet.
     val dateMillis = remember { mutableStateOf<Long?>(null) }
     val datePickerVisible = remember { mutableStateOf(false) }
 
-    Scaffold(topBar = {}) { padding ->
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "Mục tiêu", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+            onBack = onBack
+        )
+    }) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 // Header label (larger & bold) and the actual name (smaller, not bold)
@@ -221,7 +229,7 @@ fun GoalDetailContent(
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun GoalDetailScreen(
-    _navController: NavController,
+    navController: NavController,
     encodedName: String?,
     viewModel: GoalViewModel = hiltViewModel()
 ) {
@@ -258,8 +266,9 @@ fun GoalDetailScreen(
             },
             onOpenTransactions = { goalName ->
                 val encoded = java.net.URLEncoder.encode(goalName, "UTF-8")
-                _navController.navigate("/all_transactions/goal/$encoded")
-            }
+                navController.navigate("/all_transactions/goal/$encoded")
+            },
+            onBack = { navController.popBackStack() }
         )
     }
 }

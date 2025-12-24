@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,12 +30,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.codewithfk.expensetracker.android.R
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 
 @Composable
 fun CategoryDetailContent(
     name: String,
     getExpensesForCategory: (name: String, month: String?) -> Flow<List<com.codewithfk.expensetracker.android.data.model.ExpenseEntity>>,
-    onOpenTransactions: (String) -> Unit
+    onOpenTransactions: (String) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     // Load expenses for this category (no inline filter; use shared transaction screen for advanced filtering)
     val expensesFlow = getExpensesForCategory(name, null)
@@ -39,7 +46,13 @@ fun CategoryDetailContent(
 
     // If name is blank show a friendly message
     if (name.isBlank()) {
-        Scaffold(topBar = {}) { padding ->
+        // Show a top bar with a back button so user can navigate back from the error state
+        Scaffold(topBar = {
+            TopBarWithBack(
+                title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
+                onBack = onBack
+            )
+        }) { padding ->
             Surface(modifier = Modifier.padding(padding)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     ExpenseTextView(text = "Danh mục không hợp lệ", color = Color.Black)
@@ -49,11 +62,15 @@ fun CategoryDetailContent(
         return
     }
 
-    Scaffold(topBar = {}) { padding ->
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, color = Color.Black) },
+            onBack = onBack
+        )
+    }) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Header label (larger & bold) and the actual name (smaller, not bold)
-                ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
+                // Header label (larger & bold) moved to topBar
                 Spacer(modifier = Modifier.size(6.dp))
                 // Actual category name: smaller and not bold (single-line with ellipsis)
                 ExpenseTextView(text = name, style = MaterialTheme.typography.titleLarge, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -94,7 +111,8 @@ fun CategoryDetailScreen(
         onOpenTransactions = { categoryName ->
             val encoded = java.net.URLEncoder.encode(categoryName, "UTF-8")
             navController.navigate("/all_transactions/category/$encoded")
-        }
+        },
+        onBack = { navController.popBackStack() }
     )
 }
 

@@ -1,6 +1,7 @@
 package com.codewithfk.expensetracker.android.feature.category
 
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,9 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.codewithfk.expensetracker.android.R
 import com.codewithfk.expensetracker.android.data.model.CategoryEntity
 import com.codewithfk.expensetracker.android.data.model.CategorySummary
 import com.codewithfk.expensetracker.android.widget.ExpenseTextView
+import com.codewithfk.expensetracker.android.widget.TopBarWithBack
 import kotlinx.coroutines.flow.Flow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -61,7 +66,8 @@ fun CategoryListContent(
     onOpenCategory: (name: String) -> Unit,
     onInsertCategory: (CategoryEntity) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
-    onDeleteCategory: (id: Int) -> Unit
+    onDeleteCategory: (id: Int) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     // category totals (id, name, total)
     val currentMonth = getCurrentMonthString()
@@ -108,11 +114,17 @@ fun CategoryListContent(
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deletingCategoryId = remember { mutableStateOf<Int?>(null) }
 
-    Scaffold(topBar = {}) { padding ->
+    Scaffold(topBar = {
+        TopBarWithBack(
+            title = { ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge, color = Color.Black) },
+            onBack = onBack
+        )
+    }) { padding ->
         Surface(modifier = Modifier.padding(padding)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExpenseTextView(text = "Danh mục", style = MaterialTheme.typography.titleLarge, color = Color.Black)
+                    // Title shown in topBar; keep placeholder and + button on the right
+                    ExpenseTextView(text = "", style = MaterialTheme.typography.titleLarge, color = Color.Black)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Spacer(modifier = Modifier.size(8.dp))
                         // explicit + button for adding category
@@ -473,7 +485,8 @@ fun CategoryListScreen(navController: NavController, viewModel: CategoryViewMode
              // find entity by id and call viewModel.deleteCategory
              // safe: lookup by id via categoriesFlow not available here synchronously; call delete by constructing entity with id
              viewModel.deleteCategory(CategoryEntity(id = id, name = ""))
-         }
+         },
+        onBack = { navController.popBackStack() }
      )
  }
 
